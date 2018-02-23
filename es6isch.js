@@ -3,13 +3,6 @@ const traverse = require("@babel/traverse").default;
 const fs = require('fs');
 const path = require('path');
 
-const wurst = require('./wurst');
-const wurst_index = require('./wurst/index');
-const wurst_index_js = require('./wurst/index.js');
-
-const wurst_doof = require('./wurst/doof');
-const wurst_doof_index = require('./wurst/doof');
-
 function findPathOfPackageJson(str) {
   if (str.length === 0) { return null; }
   let base = path.dirname(str);
@@ -83,12 +76,14 @@ function es6isch(fsname) {
   });
   return [
     required.map(r => `import * as require_${asVar(r)} from '${resolvEs6Path(packagePath, r, fname)}';`).join('\n'),
+    `const module = { exports: {} };`,
     `function require(fname) {`,
     `return ({`,
     required.map((i) => `${JSON.stringify(i)}: require_${asVar(i)}`).join(',\n'),
-    `})[fname];`,
+    `})[fname].default;`,
     `}`,
-    file.toString()
+    file.toString(),
+    `export default module.exports;`,
   ].join('\n');
   //  console.log(file.toString());
 }
