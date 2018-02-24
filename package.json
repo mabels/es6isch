@@ -2,7 +2,7 @@
   "name": "es6isch",
   "version": "0.1.0",
   "description": "",
-  "main": "dist/server.js",
+  "main": "dist/index.js",
   "engines": {
     "node": ">=6.9.5"
   },
@@ -29,10 +29,15 @@
     "url": "https://github.com/mabels/es6isch/issues"
   },
   "homepage": "https://github.com/mabels/es6isch#readme",
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/express": "^4.11.1",
+    "tslint": ">=5.7.0",
+    "typescript": "2.6.2"
+  },
   "dependencies": {
     "@babel/core": "^7.0.0-beta.40",
     "@babel/traverse": "^7.0.0-beta.40",
+    "@types/babel-types": "^7.0.0",
     "express": "^4.16.2",
     "react": "^16.2.0"
   }
