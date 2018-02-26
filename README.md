@@ -42,5 +42,7 @@ $ node dist/src/server.js \
 
 open http://localhost:3000/ with your browser
 
+# default behavior
+
 if you start es6isch in a node package root it should autoconfigure it self
 
