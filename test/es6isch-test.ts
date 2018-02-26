@@ -10,7 +10,7 @@ import * as http from 'http';
 // const cwd = process.cwd();
 describe('es6sich', () => {
   const vfs = new Es6ischVfs(path.join(process.cwd(), 'test', 'pkgbase'),
-    path.join(process.cwd(), 'test', 'pkgbase', 'node_modules'));
+    path.join(process.cwd(), 'test', 'pkgbase', 'node_modules_test'));
   describe('resolve', () => {
     it('file-resolv directory to ./unknown', () => {
       const rv = Es6isch.resolve(vfs, './unknown', 'base');
@@ -115,14 +115,14 @@ describe('es6sich', () => {
       const rv = Es6isch.resolve(vfs, 'pkgtest/test.js', '/base/wurst/reactPackage/index.js');
       assert.equal(rv.isError, false, 'error');
       assert.equal(rv.absResolved, path.join(vfs.modules.absBase, 'pkgtest', 'test.js'), 'abs');
-      assert.equal(rv.redirected, '../../../node_modules/pkgtest/test.js', 'redirect');
+      assert.equal(rv.redirected, '../../../node_modules_test/pkgtest/test.js', 'redirect');
     });
 
     it('resolve node_module redirect', () => {
       const rv = Es6isch.resolve(vfs, 'pkgtest', '/base/wurst/reactPackage/index.js');
       assert.equal(rv.isError, false, 'error');
       assert.equal(rv.absResolved, path.join(vfs.modules.absBase, 'pkgtest', 'test.js'), 'abs');
-      assert.equal(rv.redirected, '../../../node_modules/pkgtest/test.js', 'redirect');
+      assert.equal(rv.redirected, '../../../node_modules_test/pkgtest/test.js', 'redirect');
     });
   });
   describe('parse', () => {
@@ -130,7 +130,7 @@ describe('es6sich', () => {
       const parsed = parse(Es6isch.resolve(vfs, './base/wurst/reactPackage/index.js'));
       // console.log(parsed);
       assert.ok(parsed.startsWith('import'));
-      assert.ok(parsed.includes(`from '../../../node_modules/pkgtest/test.js';`));
+      assert.ok(parsed.includes(`from '../../../node_modules_test/pkgtest/test.js';`));
     });
     it('test export default last', () => {
       const parsed = parse(Es6isch.resolve(vfs, './base/wurst/localPackage/wurst.js'));
@@ -144,7 +144,7 @@ describe('es6sich', () => {
       expressSrv = server(['_',
         '-p', '' + port,
         '-r', './test/pkgbase/',
-        '-m', './test/pkgbase/node_modules',
+        '-m', './test/pkgbase/node_modules_test',
         '-h', './test/pkgbase/html'
       ]);
     });
@@ -190,7 +190,8 @@ describe('es6sich', () => {
         try {
           // console.log(res.body);
           assert.ok(200 <= res.statusCode && res.statusCode < 300);
-          assert.ok(res.body.startsWith('import * as require_pkgtest from \'../../../node_modules/pkgtest/test.js\''));
+          assert.ok(res.body.startsWith(
+            'import * as require_pkgtest from \'../../../node_modules_test/pkgtest/test.js\''));
           done();
         } catch (e) {
           done(e);
