@@ -1,0 +1,23 @@
+{
+  "name": "es6isch-test",
+  "version": "0.1.0",
+  "description": "",
+  "main": "./base/wurst/index.js",
+  "engines": {
+    "node": ">=6.9.5"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "mabels/es6isch"
+  },
+  "license": "AFL-2.0",
+  "bugs": {
+    "url": "https://github.com/mabels/es6isch/issues"
+  },
+  "homepage": "https://github.com/mabels/es6isch#readme",
+  "devDependencies": {},
+  "dependencies": {
+    "react": "^16.2.0"
+  }
+}

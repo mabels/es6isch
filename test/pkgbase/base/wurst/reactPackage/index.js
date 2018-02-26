@@ -1,4 +1,4 @@
-const react = require('react');
+const react = require('pkgtest');
 function  wurst() {
   console.log('doof');
   return react;

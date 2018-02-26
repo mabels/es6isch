@@ -1,24 +1,18 @@
 {
   "name": "es6isch",
-  "version": "0.1.0",
-  "description": "",
-  "main": "dist/index.js",
+  "version": "1.0.0",
+  "description": "es6isch server",
+  "main": "dist/src/server.js",
   "engines": {
     "node": ">=6.9.5"
   },
   "scripts": {
     "clean": "rimraf dist",
-    "build": "webpack",
-    "build:watch": "webpack --watch --debug --output-pathinfo --progress",
-    "start": "nodemon ./dist/server.js",
+    "build": "tsc",
+    "start": "node ./dist/src/server.js",
     "pretest": "npm run build",
-    "test": "mocha ./dist/test",
-    "lint": "tslint --project .",
-    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -w",
-    "preversion": "npm test",
-    "version": "npm run build && conventional-changelog -p angular -v -r 0 > CHANGELOG.md && git add -A .",
-    "postversion": "git push && git push --tags",
-    "prepublish": "not-in-install && npm run build || echo 'In install cycle, skipping prepublish'"
+    "test": "mocha ./dist/test/*-test.js",
+    "lint": "tslint --project ."
   },
   "repository": {
     "type": "git",
@@ -30,15 +24,22 @@
   },
   "homepage": "https://github.com/mabels/es6isch#readme",
   "devDependencies": {
+    "@types/chai": "4.0.10",
     "@types/express": "^4.11.1",
+    "@types/mocha": "2.2.45",
+    "@types/rimraf": "^2.0.2",
+    "@types/babel-types": "^7.0.0",
+    "@types/request": "^2.47.0",
+    "chai": ">=4.1.2",
+    "mocha": "4.1.0",
     "tslint": ">=5.7.0",
-    "typescript": "2.6.2"
+    "request": "^2.83.0",
+    "typescript": "^2.7.2"
   },
   "dependencies": {
-    "@babel/core": "^7.0.0-beta.40",
-    "@babel/traverse": "^7.0.0-beta.40",
-    "@types/babel-types": "^7.0.0",
     "express": "^4.16.2",
-    "react": "^16.2.0"
+    "yargs": "^11.0.0",
+    "@babel/core": "^7.0.0-beta.40",
+    "@babel/traverse": "^7.0.0-beta.40"
   }
 }

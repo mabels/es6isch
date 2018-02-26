@@ -1,7 +1,4 @@
-// import * as babel from '@babel/core';
-const babel = require('@babel/core');
-// import traverse from '@babel/traverse';
-const traverse = require('@babel/traverse').default;
+
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -10,7 +7,7 @@ export function findPathOfPackageJson(str: string): string {
   let pjson: string = str;
   if (!str.endsWith('package.json')) {
     pjson = path.join(str, 'package.json');
-  } 
+  }
   // console.log(`findPathOfPackageJson:${pjson}`);
   const ret = fs.existsSync(pjson);
   if (!ret) {
@@ -19,106 +16,119 @@ export function findPathOfPackageJson(str: string): string {
   return path.dirname(pjson);
 }
 
+export class Es6ischMap {
+  public readonly relBase: string; // '/';
+  public readonly absBase: string; // '/test/jojo';
 
-function asVar(x: string): string {
-  // console.log(x);
-  return x.replace(/([^A-Za-z0-9]+)/g, '_');
-  // (m) => m[1].toUpperCase());
-}
-
-// function splitPath(name): string {
-//   return name.replace(/\/+/, '/');
-// }
-
-// function relative(f1: string, f2: string): string {
-//   console.log(splitPath(f1), splitPath(f2));
-//   return '..';
-// }
-interface Resolved {
-  pkgBase: string; 
-  // requirePath: string;
-  relative: string;
-  relativeReq: string;
-  reqFilename: string;
-}
-
-function nodeResolver(pkgBase: string, requirePath: string): Resolved {
-  const relative = path.relative(__dirname, pkgBase);
-  const relativeReq = path.join(relative, requirePath);
-  return { 
-    pkgBase,
-    // requirePath,
-    relative, 
-    relativeReq, 
-    reqFilename: require.resolve(requirePath)
+  public constructor(absBase: string, relBase: string) {
+    this.absBase = path.resolve(absBase);
+    if (!relBase.startsWith('/')) {
+      throw new Error('Es6ischMap has to start with a /');
+    }
+    this.relBase = relBase;
   }
 }
 
-function resolvEs6Path(nres: Resolved, requirePath: string): string {
-  if (requirePath.startsWith('./') || 
-      requirePath.startsWith('../') || 
-      requirePath.startsWith('/')) {
-    let with_js = requirePath;
+export class Es6ischVfs {
+  public readonly root: Es6ischMap;
+  public readonly modules: Es6ischMap;
+
+  public constructor(rootAbsBase: string, modulesAbsBase: string) {
+    this.root = new Es6ischMap(rootAbsBase, '/');
+    this.modules = new Es6ischMap(modulesAbsBase, '/node_modules');
+  }
+
+}
+
+export class Es6ischReq {
+  public readonly vfs: Es6ischVfs;
+  public readonly toResolv: string;
+  public readonly resolvDir: string;
+
+  public constructor(vfs: Es6ischVfs, toResolv: string, resolvDir = '/') {
+    if (!toResolv || toResolv.length == 0) {
+      toResolv = '.';
+    }
+    this.vfs = vfs;
+    this.toResolv = toResolv;
+    this.resolvDir = resolvDir;
+  }
+}
+
+export class Es6isch {
+  public readonly isError: boolean;
+  public readonly redirected: string;
+  public readonly absResolved: string;
+  public readonly req: Es6ischReq;
+
+  public static fileResolv(req: Es6ischReq, map: Es6ischMap): Es6isch {
     try {
-      // const absNodePath = path.join(path.dirname(fname), requirePath);
-      console.log(requirePath);
-      const stat = fs.statSync(nres.reqFilename);
-      if (stat.isDirectory()) {
-        let packageJson;
-        try {
-          packageJson = JSON.parse(fs.readFileSync(path.join(nres.reqFilename, 'package.json')).toString());
-          // console.log(`XXXXX:${JSON.stringify(packageJson.main)}`);
-        } catch (e) {
-          packageJson = {};
+      const statResolvDir = fs.statSync(path.join(map.absBase, req.resolvDir));
+      let resolvDir = req.resolvDir;
+      if (!statResolvDir.isDirectory()) {
+        resolvDir = path.dirname(req.resolvDir);
+      }
+      const absPath = path.join(map.absBase, resolvDir, req.toResolv);
+      // console.log(`absPath:${absPath}`);
+      const absResolved = require.resolve(absPath);
+      let redirected = path.relative(absPath, absResolved);
+      if (redirected.length > 0) {
+        redirected = path.join(req.toResolv, redirected);
+        if (!redirected.startsWith('.')) {
+          redirected = `./${redirected}`;
         }
-        with_js = `${with_js}/${packageJson.main || 'index.js'}`;
       }
+      return new Es6isch(req, false, absResolved, redirected);
     } catch (e) {
-      with_js = `${with_js}.js`;
+      return new Es6isch(req, true);
     }
-    return with_js;
   }
-  const rq = requirePath; // `${nres.relative}/node_modules/${requirePath}`;
-  console.log(`===>`, rq);
-  nres = nodeResolver(nres.pkgBase, rq);
-  // const tmpName = require.resolve(requirePath);
-  return resolvEs6Path(nres, rq);
-  // return `${dots(fname, nodePath)}/node_modules/${nodePath}.....js`;
-}
 
-export function es6isch(pkgBase: string, requirePath: string): string {
-  const relative = path.relative(__dirname, pkgBase);
-  const nres = nodeResolver(pkgBase, `${relative}/${requirePath}`);
-  //console.log(`es6isch:${pkgBase}=>${requirePath}:${__dirname}:${nres.relative}:${nres.relativeReq}:${nres.reqFilename}`);
-  const file = fs.readFileSync(nres.reqFilename);
-  const ast = babel.parse(file);
-  // const packagePath = findPathOfPackageJson(fname);
-
-  const required: string[] = [];
-  traverse(ast, {
-    CallExpression(ce: any) {
-      //console.log(ce);
-      const n = ce.node;
-      if (!(n.callee.type == 'Identifier' && n.callee.name == 'require')) {
-        return;
+  public static moduleResolv(req: Es6ischReq, rootMap: Es6ischMap, modMap: Es6ischMap): Es6isch {
+    try {
+      const statResolvDir = fs.statSync(path.join(rootMap.absBase, req.resolvDir));
+      // console.log(`absPath:${statResolvDir}`);
+      let resolvDir = req.resolvDir;
+      if (!statResolvDir.isDirectory()) {
+        resolvDir = `${path.dirname(req.resolvDir)}/`;
       }
-      const sl = n.arguments
-        .filter((a: any) => a.type == 'StringLiteral')
-        .map((a: any) => a.value);
-      required.push.apply(required, sl);
+      const rootAbsPath = path.join(rootMap.absBase, resolvDir);
+      const modAbsPath = path.join(modMap.absBase, req.toResolv);
+      const absResolved = require.resolve(modAbsPath);
+      let redirected = path.relative(rootAbsPath, absResolved);
+      // console.log(`redirected\n${redirected}\n${rootAbsPath}\n${absResolved}`);
+      if (redirected.length > 0) {
+        if (!redirected.startsWith('.')) {
+          redirected = `./${redirected}`;
+        }
+      }
+      return new Es6isch(req, false, absResolved, redirected);
+    } catch (e) {
+      return new Es6isch(req, true);
     }
-  });
-  return [
-    required.map(r => `import * as require_${asVar(r)} from '${resolvEs6Path(nres, r)}';`).join('\n'),
-    `const module = { exports: {} };`,
-    `function require(fname) {`,
-    `return ({`,
-    required.map((i) => `${JSON.stringify(i)}: require_${asVar(i)}`).join(',\n'),
-    `})[fname].default;`,
-    `}`,
-    file.toString(),
-    `export default module.exports;`,
-  ].join('\n');
-  //  console.log(file.toString());
-}
+  }
 
+  public static resolve(vfs: Es6ischVfs, toResolv: string, resolvDir = '/'): Es6isch {
+    const req = new Es6ischReq(vfs, toResolv, resolvDir);
+    if (req.toResolv.startsWith('/')) {
+      return new Es6isch(req, true);
+    }
+    // WHY are these method are not the same?
+    if (req.toResolv.startsWith('.')) {
+      return Es6isch.fileResolv(req, req.vfs.root);
+    } else {
+      return Es6isch.moduleResolv(req, req.vfs.root, req.vfs.modules);
+    }
+  }
+
+  public constructor(req: Es6ischReq, isError: boolean,
+    absResolved?: string, redirected?: string) {
+    this.req = req;
+    this.isError = isError;
+    this.absResolved = absResolved;
+    if (redirected && redirected.length > 0) {
+      this.redirected = redirected;
+    }
+  }
+
+}
