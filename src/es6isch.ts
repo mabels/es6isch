@@ -3,6 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as resolveFrom from 'resolve-from';
 
+const Module = require('module');
+
 export function findPathOfPackageJson(str: string): string {
   if (str.length === 0) { return null; }
   let pjson: string = str;
@@ -128,31 +130,55 @@ export class Es6isch {
         /* */
       }
       const rootAbsPath = path.join(rootMap.absBase, resolvDir);
+
+      const nmp: string[] = Module._nodeModulePaths(rootAbsPath);
+      let fdir: string = null;
+      for (let mdirIdx = 0; !fdir && mdirIdx < nmp.length; ++mdirIdx) {
+        fdir = [
+          path.join(nmp[mdirIdx], req.toResolv, 'package.json'),
+          path.join(nmp[mdirIdx], req.toResolv, 'index.js')
+        ].find(ndir => {
+          // console.log(ndir);
+          return fs.existsSync(ndir);
+        });
+      }
+      // console.log(`FOUND:${fdir}:${rootAbsPath}:${req.toResolv}`);
       // const modAbsPath = path.join(modMap.absBase, req.toResolv);
       // console.log(`resolve:${req.toResolv}:${rootAbsPath}:${req.vfs.root.absBase}`);
       const absResolved = resolveFrom(rootAbsPath, req.toResolv);
-      // const absResolved = require.resolve(req.toResolv);
-      let redirected = path.relative(rootAbsPath, absResolved)
+       let redirected = path.relative(rootAbsPath, absResolved)
         .replace(/^[\.\/]+(\/node_modules\/.*)$/, '$1');
-      // console.log(`redirected\n${toTop}\n${req.toResolv}\n${redirected}\n${rootAbsPath}\n${absResolved}`);
-      if (redirected.length == 0) {
-        // console.log(`STOP:REDIRECT`);
-        redirected = null; // path.join(toTop, redirected);
-      // if (redirected.length > 0) {
-      //   if (!redirected.startsWith('.')) {
-      //     redirected = `./${redirected}`;
-      //   }
-      } else if (redirected.endsWith(req.toResolv)) {
-        // console.log(`DIRECT`);
-        redirected = null; // path.join(toTop, redirected);
-      } else {
+      if (fdir) {
+        // console.log(`REDIRECT:${fdir}:${redirected}`);
         let toTop = path.relative(rootAbsPath, req.vfs.root.absBase);
         if (toTop.length == 0) {
           toTop = '/';
         }
         redirected = path.join(toTop, redirected);
-        // console.log(`NEEDS:REDIRECT:${toTop}:${redirected}`);
+      } else {
+        redirected = null;
       }
+
+      // // console.log(`redirected\n${toTop}\n${req.toResolv}\n${redirected}\n${rootAbsPath}\n${absResolved}`);
+      // console.log(redirected, absResolved, rootAbsPath);
+      // if (redirected.length == 0) {
+      //   // console.log(`STOP:REDIRECT`);
+      //   redirected = null; // path.join(toTop, redirected);
+      // // if (redirected.length > 0) {
+      // //   if (!redirected.startsWith('.')) {
+      // //     redirected = `./${redirected}`;
+      // //   }
+      // } else if (redirected.endsWith(req.toResolv)) {
+      //   // console.log(`DIRECT`);
+      //   redirected = null; // path.join(toTop, redirected);
+      // } else {
+      //   let toTop = path.relative(rootAbsPath, req.vfs.root.absBase);
+      //   if (toTop.length == 0) {
+      //     toTop = '/';
+      //   }
+      //   redirected = path.join(toTop, redirected);
+      //   // console.log(`NEEDS:REDIRECT:${toTop}:${redirected}`);
+      // }
       // console.log(`redirected\n${redirected}:${absResolved}`);
       return new Es6isch(req, false, absResolved, redirected);
     } catch (e) {

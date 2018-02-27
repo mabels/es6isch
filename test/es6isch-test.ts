@@ -1,7 +1,7 @@
 import { assert } from 'chai';
-import { Es6ischVfs, Es6isch, parse, server } from '../src/index';
+import { Es6ischVfs, Es6isch, transform, server, es6app } from '../src/index';
 import * as request from 'request';
-// import * as express from 'express';
+import * as express from 'express';
 import * as path from 'path';
 import * as http from 'http';
 
@@ -112,7 +112,7 @@ describe('es6sich', () => {
 
     it('resolve node_module no-redirect', () => {
       const rv = Es6isch.resolve(vfs, 'pkgtest/test.js', '/base/wurst/reactPackage/index.js');
-      console.log(rv);
+      // console.log(rv);
       assert.equal(rv.isError, false, 'error');
       assert.equal(rv.absResolved, path.join(vfs.modules.absBase, 'pkgtest', 'test.js'), 'abs');
       assert.equal(rv.redirected, null, 'redirect');
@@ -127,16 +127,50 @@ describe('es6sich', () => {
   });
   describe('parse', () => {
     it('test import first', () => {
-      const parsed = parse(Es6isch.resolve(vfs, './base/wurst/reactPackage/index.js')).parsed;
+      const parsed = transform(Es6isch.resolve(vfs, './base/wurst/reactPackage/index.js')).parsed;
       // console.log(parsed);
       assert.ok(parsed.startsWith('import'));
       assert.ok(parsed.includes(`from '../../../node_modules/pkgtest/test.js';`));
     });
     it('test export default last', () => {
-      const parsed = parse(Es6isch.resolve(vfs, './base/wurst/localPackage/wurst.js')).parsed;
+      const parsed = transform(Es6isch.resolve(vfs, './base/wurst/localPackage/wurst.js')).parsed;
       assert.ok(parsed.endsWith('export default module.exports;'));
     });
   });
+
+  describe('test-server', () => {
+    let expressSrv: http.Server;
+    let port = ~~((Math.random() * (0x10000 - 1024)) + 1024);
+    before(() => {
+      const app = express();
+      app.use('/wurst', es6app(Es6ischVfs.from({
+        rootAbsBase: './test/projectBase/packages/api',
+        es6ischBase: '/'
+      })));
+      expressSrv = app.listen(port, 'localhost', () => { /* */ });
+    });
+
+    it('absolute-redirect', (done) => {
+      request(`http://localhost:${port}/wurst/`, (err, res) => {
+        try {
+          // console.log(res.statusCode);
+          // console.log(res);
+          // console.log(res.body);
+          assert.ok(200 <= res.statusCode && res.statusCode < 300);
+          assert.ok(res.body.startsWith(
+            'import * as require_apilevelpkg from \'../node_modules/apilevelpkg/test.js\''));
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
+    after(() => {
+      expressSrv.close();
+    });
+  });
+
   describe('test-server', () => {
     let expressSrv: http.Server;
     let port = ~~((Math.random() * (0x10000 - 1024)) + 1024);
@@ -147,62 +181,12 @@ describe('es6sich', () => {
         '-e', '/'
       ]);
     });
-    // it('static-server', (done) => {
-    //   request(`http://localhost:${port}/`, (err, res) => {
-    //     try {
-    //       assert.ok(200 <= res.statusCode && res.statusCode < 300);
-    //       assert.include(res.body, '/es6isch/wurst/index.js');
-    //       done();
-    //     } catch (e) {
-    //       done(e);
-    //     }
-    //   });
-    // });
-    // it('index-es6isch-redirect', (done) => {
-    //   request(`http://localhost:${port}/es6isch`, (err, res) => {
-    //     try {
-    //       // console.log(res);
-    //       assert.equal(res.request.path, '/es6isch/base/wurst/index.js');
-    //       assert.ok(200 <= res.statusCode && res.statusCode < 300);
-    //       assert.ok(res.body.startsWith('import * as require__reactPackage from \'./reactPackage/index.js\''));
-    //       done();
-    //     } catch (e) {
-    //       done(e);
-    //     }
-    //   });
-    // });
-    // it('index-es6isch-direct', (done) => {
-    //   request(`http://localhost:${port}/es6isch/base/wurst/index.js`, (err, res) => {
-    //     try {
-    //       // console.log(res);
-    //       assert.equal(res.request.path, '/es6isch/base/wurst/index.js');
-    //       assert.ok(200 <= res.statusCode && res.statusCode < 300);
-    //       assert.ok(res.body.startsWith('import * as require__reactPackage from \'./reactPackage/index.js\''));
-    //       done();
-    //     } catch (e) {
-    //       done(e);
-    //     }
-    //   });
-    // });
-    // it('index-es6isch-resolve-module', (done) => {
-    //   request(`http://localhost:${port}/es6isch/base/wurst/reactPackage/index.js`, (err, res) => {
-    //     try {
-    //       // console.log(res.body);
-    //       assert.ok(200 <= res.statusCode && res.statusCode < 300);
-    //       assert.ok(res.body.startsWith(
-    //         'import * as require_pkgtest from \'../../../node_modules_test/pkgtest/test.js\''));
-    //       done();
-    //     } catch (e) {
-    //       done(e);
-    //     }
-    //   });
-    // });
 
     it('index-slash', (done) => {
       request(`http://localhost:${port}/`, (err, res) => {
         try {
-          console.log(res.statusCode);
-          console.log(res.body);
+          // console.log(res.statusCode);
+          // console.log(res.body);
           assert.ok(200 <= res.statusCode && res.statusCode < 300);
           assert.ok(res.body.startsWith(
             'import * as require_apilevelpkg from \'../node_modules/apilevelpkg/test.js\''));
@@ -257,7 +241,6 @@ describe('es6sich', () => {
       });
     });
 
-
     it('index-slash-node-modules-projectlevelpkg', (done) => {
       request(`http://localhost:${port}/node_modules/projectlevelpkg`, (err, res) => {
         try {
@@ -288,6 +271,21 @@ describe('es6sich', () => {
       });
     });
 
+    it('index-soft-link.js', (done) => {
+      request(`http://localhost:${port}/node_modules/@patternplate/render-styled-compoments/mount.js`, (err, res) => {
+        try {
+          // console.log(res.statusCode);
+          // console.log(res.body);
+          assert.ok(200 <= res.statusCode && res.statusCode < 300);
+          assert.ok(res.body.startsWith(
+            'import * as require_doof from \'doof\';'
+          ));
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
 
     after(() => {
       expressSrv.close();

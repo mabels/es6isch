@@ -20,7 +20,7 @@ export class Es6Parsed {
   }
 }
 
-export function parse(res: Es6isch):  Es6Parsed {
+export function transform(res: Es6isch):  Es6Parsed {
   // console.log(`es6isch:${pkgBase}=>${requirePath}:${__dirname}:${nres.relative}:${nres.relativeReq}:
   // ${nres.reqFilename}`);
   const file = fs.readFileSync(res.absResolved).toString();

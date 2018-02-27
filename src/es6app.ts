@@ -2,7 +2,7 @@ import * as express from 'express';
 // import { es6isch } from './es6isch';
 import * as path from 'path';
 import { Es6ischVfs, Es6isch } from './es6isch';
-import { parse } from './es6parse';
+import { transform } from './es6parse';
 
 export function es6app(vfs: Es6ischVfs): express.Express {
   const app = express();
@@ -18,11 +18,12 @@ export function es6app(vfs: Es6ischVfs): express.Express {
     }
     if (resolv.redirected) {
       res.statusCode = 302;
-      res.setHeader('Location', resolv.redirected);
+      // console.log(req.baseUrl);
+      res.setHeader('Location', path.join(req.baseUrl, resolv.redirected));
       res.end();
       return;
     }
-    res.send(parse(resolv).parsed);
+    res.send(transform(resolv).parsed);
     res.end();
   });
   return app;

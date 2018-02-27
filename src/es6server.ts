@@ -1,7 +1,6 @@
 import * as express from 'express';
 import Es6App from './es6app';
 import { Es6ischVfs } from './es6isch';
-import * as path from 'path';
 import * as http from 'http';
 
 const yargs = require('yargs');
