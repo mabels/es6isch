@@ -22,19 +22,33 @@ export function server(args: string[]): http.Server {
       alias: 'h',
       describe: 'path to html base which should es6isch served'
     })
-    .option('root-base', {
+    .option('root-abs-base', {
       alias: 'r',
       describe: 'path to package base which should es6isch served',
       default: process.cwd()
     })
-    .option('node-modules', {
+    .option('es6isch-base', {
+      alias: 'e',
+      describe: 'path to es6isch root',
+      default: '/es6isch'
+    })
+    .option('modules-abs-base', {
+      alias: 'm',
+      describe: 'path to node_modules which should es6isch served'
+    })
+    .option('modules-base', {
       alias: 'm',
       describe: 'path to node_modules which should es6isch served',
-      default: path.join(process.cwd(), 'node_modules')
+      default: '/node_modules'
     })
     .parse(args);
 
-  const vfs = new Es6ischVfs(argv.rootBase, argv.nodeModules);
+  const vfs = Es6ischVfs.from({
+    rootAbsBase: argv.rootAbsBase,
+    moduleAbsBase: argv.nodeModules,
+    es6ischBase: argv.es6ischBase,
+    modulesBase: argv.modulesBase,
+  });
   const app = express();
 
   if (argv.htmlBase) {
@@ -45,8 +59,8 @@ export function server(args: string[]): http.Server {
   return app.listen(argv.port, argv.listenAddr, () => {
     console.log([
       `We speak es6isch on [${argv.listenAddr}:${argv.port}]`,
-      `mounted on: ${argv.rootBase}`,
-      `modules on: ${argv.nodeModules}`,
+      `mounted on: ${vfs.root.absBase}:${vfs.root.relBase}`,
+      `modules on: ${vfs.modules.absBase}:${vfs.modules.relBase}`,
       `html on: ${argv.htmlBase}`
     ].join('\n'));
   });

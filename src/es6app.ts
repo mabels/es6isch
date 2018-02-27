@@ -7,10 +7,10 @@ import { parse } from './es6parse';
 export function es6app(vfs: Es6ischVfs): express.Express {
   const app = express();
   app.use(vfs.es6ischBase, (req, res) => {
-    const fsPath = `./${req.url}`;
+    // const fsPath = `./${req.url}`;
     // console.log(fsPath, JSON.stringify(vfs, null, 2));
     res.setHeader('Content-type', 'application/javascript');
-    const resolv = Es6isch.resolve(vfs, fsPath);
+    const resolv = Es6isch.resolve(vfs, req.url);
     if (resolv.isError) {
       res.statusCode = 404;
       res.end();
@@ -18,7 +18,7 @@ export function es6app(vfs: Es6ischVfs): express.Express {
     }
     if (resolv.redirected) {
       res.statusCode = 302;
-      res.setHeader('Location', path.join(req.originalUrl, resolv.redirected));
+      res.setHeader('Location', resolv.redirected);
       res.end();
       return;
     }

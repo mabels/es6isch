@@ -1,8 +1,8 @@
 {
-  "name": "es6isch-test",
+  "name": "es6isch-test-api",
   "version": "0.1.0",
   "description": "",
-  "main": "./base/wurst/index.js",
+  "main": "./src/test.js",
   "engines": {
     "node": ">=6.9.5"
   },

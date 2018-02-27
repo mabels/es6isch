@@ -1,6 +1,6 @@
 {
   "name": "es6isch",
-  "version": "1.0.1",
+  "version": "1.0.1a",
   "description": "es6isch server",
   "main": "dist/src/index.js",
   "engines": {
@@ -37,9 +37,11 @@
     "typescript": "^2.7.2"
   },
   "dependencies": {
-    "express": "^4.16.2",
-    "yargs": "^11.0.0",
     "@babel/core": "^7.0.0-beta.40",
-    "@babel/traverse": "^7.0.0-beta.40"
+    "@babel/traverse": "^7.0.0-beta.40",
+    "@types/resolve-from": "0.0.18",
+    "express": "^4.16.2",
+    "resolve-from": "^4.0.0",
+    "yargs": "^11.0.0"
   }
 }
