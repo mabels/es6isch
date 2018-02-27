@@ -43,10 +43,11 @@ export function transform(res: Es6isch):  Es6Parsed {
   const resolved = Array.from(new Set(required)).map(toResolv => {
     return Es6isch.resolve(res.req.vfs, toResolv, res.req.toResolv);
   });
+
   return new Es6Parsed(res, [
-    resolved.map(r =>
-      `import * as require_${asVar(r.req.toResolv)} from '${r.redirected || r.req.toResolv}';`
-    ).join('\n'),
+    resolved.map(r => {
+      return `import * as require_${asVar(r.req.toResolv)} from '${r.redirected || r.relResolved}';`;
+    }).join('\n'),
     `const module = { exports: {} };`,
     `function require(fname) {`,
     `return ({`,
