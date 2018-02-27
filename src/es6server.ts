@@ -20,8 +20,7 @@ export function server(args: string[]): http.Server {
     })
     .option('html-base', {
       alias: 'h',
-      describe: 'path to html base which should es6isch served',
-      default: process.cwd()
+      describe: 'path to html base which should es6isch served'
     })
     .option('root-base', {
       alias: 'r',
@@ -38,7 +37,10 @@ export function server(args: string[]): http.Server {
   const vfs = new Es6ischVfs(argv.rootBase, argv.nodeModules);
   const app = express();
 
-  app.use(Es6App(vfs, argv.htmlBase));
+  if (argv.htmlBase) {
+    app.use('/', express.static(argv.htmlBase));
+  }
+  app.use(Es6App(vfs));
 
   return app.listen(argv.port, argv.listenAddr, () => {
     console.log([

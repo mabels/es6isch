@@ -29,13 +29,25 @@ export class Es6ischMap {
   }
 }
 
+export interface Es6ischParam {
+  rootAbsBase: string;
+  moduleAbsBase: string;
+  es6ischBase?: string;
+}
+
 export class Es6ischVfs {
   public readonly root: Es6ischMap;
   public readonly modules: Es6ischMap;
+  public readonly es6ischBase: string;
 
-  public constructor(rootAbsBase: string, modulesAbsBase: string) {
+  public static from(param: Es6ischParam): Es6ischVfs {
+    return new Es6ischVfs(param.rootAbsBase, param.moduleAbsBase, param.es6ischBase);
+  }
+
+  public constructor(rootAbsBase: string, modulesAbsBase: string, es6ischBase = '/es6isch') {
     this.root = new Es6ischMap(rootAbsBase, '/');
     this.modules = new Es6ischMap(modulesAbsBase, '/node_modules');
+    this.es6ischBase = es6ischBase;
   }
 
 }

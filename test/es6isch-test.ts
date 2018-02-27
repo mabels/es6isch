@@ -1,7 +1,5 @@
 import { assert } from 'chai';
-import { Es6ischVfs, Es6isch } from '../src/es6isch';
-import { parse } from '../src/es6parse';
-import { server } from '../src/es6server';
+import { Es6ischVfs, Es6isch, parse, server } from '../src/index';
 import * as request from 'request';
 // import * as express from 'express';
 import * as path from 'path';
@@ -127,13 +125,13 @@ describe('es6sich', () => {
   });
   describe('parse', () => {
     it('test import first', () => {
-      const parsed = parse(Es6isch.resolve(vfs, './base/wurst/reactPackage/index.js'));
+      const parsed = parse(Es6isch.resolve(vfs, './base/wurst/reactPackage/index.js')).parsed;
       // console.log(parsed);
       assert.ok(parsed.startsWith('import'));
       assert.ok(parsed.includes(`from '../../../node_modules_test/pkgtest/test.js';`));
     });
     it('test export default last', () => {
-      const parsed = parse(Es6isch.resolve(vfs, './base/wurst/localPackage/wurst.js'));
+      const parsed = parse(Es6isch.resolve(vfs, './base/wurst/localPackage/wurst.js')).parsed;
       assert.ok(parsed.endsWith('export default module.exports;'));
     });
   });

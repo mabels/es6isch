@@ -1,3 +1,5 @@
 #!/usr/bin/env node
 
-require("../dist/src/server.js");
+const { server } = require("../");
+
+server(process.argv)

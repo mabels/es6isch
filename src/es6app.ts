@@ -4,10 +4,9 @@ import * as path from 'path';
 import { Es6ischVfs, Es6isch } from './es6isch';
 import { parse } from './es6parse';
 
-export function es6app(vfs: Es6ischVfs, htmlBase: string): express.Express {
+export function es6app(vfs: Es6ischVfs): express.Express {
   const app = express();
-  app.use('/', express.static(htmlBase));
-  app.use('/es6isch/', (req, res) => {
+  app.use(vfs.es6ischBase, (req, res) => {
     const fsPath = `./${req.url}`;
     // console.log(fsPath, JSON.stringify(vfs, null, 2));
     res.setHeader('Content-type', 'application/javascript');
@@ -23,7 +22,7 @@ export function es6app(vfs: Es6ischVfs, htmlBase: string): express.Express {
       res.end();
       return;
     }
-    res.send(parse(resolv));
+    res.send(parse(resolv).parsed);
     res.end();
   });
   return app;
