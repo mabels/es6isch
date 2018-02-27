@@ -1,5 +1,4 @@
 import * as express from 'express';
-import * as fs from 'fs';
 import * as path from 'path';
 import { Es6ischVfs, Es6isch } from './es6isch';
 import { transform } from './es6parse';
