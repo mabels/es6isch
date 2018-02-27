@@ -246,8 +246,8 @@ describe('es6sich', () => {
         try {
           // console.log(res.body);
           assert.ok(200 <= res.statusCode && res.statusCode < 300);
-          assert.ok(res.body.startsWith(
-            'import * as require_react from \'react\';'
+          assert.ok(res.body.includes(
+            '// es6isch-project-level-pkg'
           ));
           done();
         } catch (e) {
@@ -261,8 +261,8 @@ describe('es6sich', () => {
         try {
           // console.log(res.body);
           assert.ok(200 <= res.statusCode && res.statusCode < 300);
-          assert.ok(res.body.startsWith(
-            'import * as require_react from \'react\';'
+          assert.ok(res.body.includes(
+            '// es6isch-project-level-pkg'
           ));
           done();
         } catch (e) {
@@ -277,8 +277,8 @@ describe('es6sich', () => {
           // console.log(res.statusCode);
           // console.log(res.body);
           assert.ok(200 <= res.statusCode && res.statusCode < 300);
-          assert.ok(res.body.startsWith(
-            'import * as require_doof from \'doof\';'
+          assert.ok(res.body.includes(
+            '// @patternplate/render-styled-compoments/mount.js'
           ));
           done();
         } catch (e) {

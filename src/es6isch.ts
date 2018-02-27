@@ -115,7 +115,6 @@ export class Es6isch {
       }
       return new Es6isch(req, false, absResolved, redirected);
     } catch (e) {
-      console.log(req, map);
       console.error(e);
       return new Es6isch(req, true);
     }
