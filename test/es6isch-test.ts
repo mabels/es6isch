@@ -7,8 +7,9 @@ import * as http from 'http';
 
 // const cwd = process.cwd();
 describe('es6sich', () => {
-  const vfs = new Es6ischVfs(path.join(process.cwd(), 'test', 'pkgbase'),
-    path.join(process.cwd(), 'test', 'pkgbase', 'node_modules_test'));
+  const vfs = Es6ischVfs.from({
+      rootAbsBase: path.join(process.cwd(), 'test', 'pkgbase')
+    });
   describe('resolve', () => {
     it('file-resolv directory to ./unknown', () => {
       const rv = Es6isch.resolve(vfs, './unknown', 'base');
@@ -44,14 +45,14 @@ describe('es6sich', () => {
       assert.equal(rv.isError, false, 'error');
       assert.equal(typeof (rv.absResolved), 'string');
       assert.equal(rv.absResolved, path.join(vfs.root.absBase, 'base', 'wurst', 'index.js'));
-      assert.equal(rv.redirected, './base/wurst/index.js');
+      assert.equal(rv.redirected, 'base/wurst/index.js');
     });
     it('resolve index.js + redirect', () => {
       const rv = Es6isch.resolve(vfs, './base/wurst/reactPackage');
       assert.equal(rv.isError, false, 'error');
       assert.equal(rv.absResolved,
         path.join(vfs.root.absBase, 'base', 'wurst', 'reactPackage', 'index.js'), 'abs');
-      assert.equal(rv.redirected, './base/wurst/reactPackage/index.js', 'redirect');
+      assert.equal(rv.redirected, 'base/wurst/reactPackage/index.js', 'redirect');
     });
     it('resolve index.js + no redirect', () => {
       const rv = Es6isch.resolve(vfs, './base/wurst/reactPackage/index.js');
@@ -66,7 +67,7 @@ describe('es6sich', () => {
       assert.equal(rv.isError, false, 'error');
       assert.equal(rv.absResolved,
         path.join(vfs.root.absBase, 'base', 'wurst', 'reactPackage', 'index.js'), 'abs');
-      assert.equal(rv.redirected, './index.js', 'redirect');
+      assert.equal(rv.redirected, 'index.js', 'redirect');
     });
 
     it('resolve:base index.js + no redirect', () => {
@@ -82,7 +83,7 @@ describe('es6sich', () => {
       assert.equal(rv.isError, false, 'error');
       assert.equal(rv.absResolved,
         path.join(vfs.root.absBase, 'base', 'wurst', 'reactPackage', 'index.js'), 'abs');
-      assert.equal(rv.redirected, './index.js', 'redirect');
+      assert.equal(rv.redirected, 'index.js', 'redirect');
     });
 
     it('resolve:base-file index.js + no redirect', () => {
@@ -111,16 +112,17 @@ describe('es6sich', () => {
 
     it('resolve node_module no-redirect', () => {
       const rv = Es6isch.resolve(vfs, 'pkgtest/test.js', '/base/wurst/reactPackage/index.js');
+      console.log(rv);
       assert.equal(rv.isError, false, 'error');
       assert.equal(rv.absResolved, path.join(vfs.modules.absBase, 'pkgtest', 'test.js'), 'abs');
-      assert.equal(rv.redirected, '../../../node_modules_test/pkgtest/test.js', 'redirect');
+      assert.equal(rv.redirected, null, 'redirect');
     });
 
     it('resolve node_module redirect', () => {
       const rv = Es6isch.resolve(vfs, 'pkgtest', '/base/wurst/reactPackage/index.js');
       assert.equal(rv.isError, false, 'error');
       assert.equal(rv.absResolved, path.join(vfs.modules.absBase, 'pkgtest', 'test.js'), 'abs');
-      assert.equal(rv.redirected, '../../../node_modules_test/pkgtest/test.js', 'redirect');
+      assert.equal(rv.redirected, '../../../node_modules/pkgtest/test.js', 'redirect');
     });
   });
   describe('parse', () => {
@@ -128,7 +130,7 @@ describe('es6sich', () => {
       const parsed = parse(Es6isch.resolve(vfs, './base/wurst/reactPackage/index.js')).parsed;
       // console.log(parsed);
       assert.ok(parsed.startsWith('import'));
-      assert.ok(parsed.includes(`from '../../../node_modules_test/pkgtest/test.js';`));
+      assert.ok(parsed.includes(`from '../../../node_modules/pkgtest/test.js';`));
     });
     it('test export default last', () => {
       const parsed = parse(Es6isch.resolve(vfs, './base/wurst/localPackage/wurst.js')).parsed;
@@ -141,61 +143,152 @@ describe('es6sich', () => {
     before(() => {
       expressSrv = server(['_',
         '-p', '' + port,
-        '-r', './test/pkgbase/',
-        '-m', './test/pkgbase/node_modules_test',
-        '-h', './test/pkgbase/html'
+        '-r', './test/projectBase/packages/api',
+        '-e', '/'
       ]);
     });
-    it('static-server', (done) => {
+    // it('static-server', (done) => {
+    //   request(`http://localhost:${port}/`, (err, res) => {
+    //     try {
+    //       assert.ok(200 <= res.statusCode && res.statusCode < 300);
+    //       assert.include(res.body, '/es6isch/wurst/index.js');
+    //       done();
+    //     } catch (e) {
+    //       done(e);
+    //     }
+    //   });
+    // });
+    // it('index-es6isch-redirect', (done) => {
+    //   request(`http://localhost:${port}/es6isch`, (err, res) => {
+    //     try {
+    //       // console.log(res);
+    //       assert.equal(res.request.path, '/es6isch/base/wurst/index.js');
+    //       assert.ok(200 <= res.statusCode && res.statusCode < 300);
+    //       assert.ok(res.body.startsWith('import * as require__reactPackage from \'./reactPackage/index.js\''));
+    //       done();
+    //     } catch (e) {
+    //       done(e);
+    //     }
+    //   });
+    // });
+    // it('index-es6isch-direct', (done) => {
+    //   request(`http://localhost:${port}/es6isch/base/wurst/index.js`, (err, res) => {
+    //     try {
+    //       // console.log(res);
+    //       assert.equal(res.request.path, '/es6isch/base/wurst/index.js');
+    //       assert.ok(200 <= res.statusCode && res.statusCode < 300);
+    //       assert.ok(res.body.startsWith('import * as require__reactPackage from \'./reactPackage/index.js\''));
+    //       done();
+    //     } catch (e) {
+    //       done(e);
+    //     }
+    //   });
+    // });
+    // it('index-es6isch-resolve-module', (done) => {
+    //   request(`http://localhost:${port}/es6isch/base/wurst/reactPackage/index.js`, (err, res) => {
+    //     try {
+    //       // console.log(res.body);
+    //       assert.ok(200 <= res.statusCode && res.statusCode < 300);
+    //       assert.ok(res.body.startsWith(
+    //         'import * as require_pkgtest from \'../../../node_modules_test/pkgtest/test.js\''));
+    //       done();
+    //     } catch (e) {
+    //       done(e);
+    //     }
+    //   });
+    // });
+
+    it('index-slash', (done) => {
       request(`http://localhost:${port}/`, (err, res) => {
         try {
+          console.log(res.statusCode);
+          console.log(res.body);
           assert.ok(200 <= res.statusCode && res.statusCode < 300);
-          assert.include(res.body, '/es6isch/wurst/index.js');
+          assert.ok(res.body.startsWith(
+            'import * as require_apilevelpkg from \'../node_modules/apilevelpkg/test.js\''));
           done();
         } catch (e) {
           done(e);
         }
       });
     });
-    it('index-es6isch-redirect', (done) => {
-      request(`http://localhost:${port}/es6isch`, (err, res) => {
-        try {
-          // console.log(res);
-          assert.equal(res.request.path, '/es6isch/base/wurst/index.js');
-          assert.ok(200 <= res.statusCode && res.statusCode < 300);
-          assert.ok(res.body.startsWith('import * as require__reactPackage from \'./reactPackage/index.js\''));
-          done();
-        } catch (e) {
-          done(e);
-        }
-      });
-    });
-    it('index-es6isch-direct', (done) => {
-      request(`http://localhost:${port}/es6isch/base/wurst/index.js`, (err, res) => {
-        try {
-          // console.log(res);
-          assert.equal(res.request.path, '/es6isch/base/wurst/index.js');
-          assert.ok(200 <= res.statusCode && res.statusCode < 300);
-          assert.ok(res.body.startsWith('import * as require__reactPackage from \'./reactPackage/index.js\''));
-          done();
-        } catch (e) {
-          done(e);
-        }
-      });
-    });
-    it('index-es6isch-resolve-module', (done) => {
-      request(`http://localhost:${port}/es6isch/base/wurst/reactPackage/index.js`, (err, res) => {
+
+    it('index-slash-src-test.js', (done) => {
+      request(`http://localhost:${port}/src/test.js`, (err, res) => {
         try {
           // console.log(res.body);
           assert.ok(200 <= res.statusCode && res.statusCode < 300);
           assert.ok(res.body.startsWith(
-            'import * as require_pkgtest from \'../../../node_modules_test/pkgtest/test.js\''));
+            'import * as require_apilevelpkg from \'../node_modules/apilevelpkg/test.js\''));
           done();
         } catch (e) {
           done(e);
         }
       });
     });
+
+    it('index-slash-node-modules-apilevelpkg', (done) => {
+      request(`http://localhost:${port}/node_modules/apilevelpkg`, (err, res) => {
+        try {
+          // console.log(res.body);
+          assert.ok(200 <= res.statusCode && res.statusCode < 300);
+          assert.ok(res.body.startsWith(
+            'import * as require_projectlevelpkg from \'../../node_modules/projectlevelpkg/test.js\';'
+          ));
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
+    it('index-slash-node-modules-apilevelpkg-test.js', (done) => {
+      request(`http://localhost:${port}/node_modules/apilevelpkg/test.js`, (err, res) => {
+        try {
+          // console.log(res.body);
+          assert.ok(200 <= res.statusCode && res.statusCode < 300);
+          assert.ok(res.body.startsWith(
+            'import * as require_projectlevelpkg from \'../../node_modules/projectlevelpkg/test.js\';'
+          ));
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
+
+    it('index-slash-node-modules-projectlevelpkg', (done) => {
+      request(`http://localhost:${port}/node_modules/projectlevelpkg`, (err, res) => {
+        try {
+          // console.log(res.body);
+          assert.ok(200 <= res.statusCode && res.statusCode < 300);
+          assert.ok(res.body.startsWith(
+            'import * as require_react from \'react\';'
+          ));
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
+    it('index-slash-node-modules-projectlevelpkg-test.js', (done) => {
+      request(`http://localhost:${port}/node_modules/projectlevelpkg/test.js`, (err, res) => {
+        try {
+          // console.log(res.body);
+          assert.ok(200 <= res.statusCode && res.statusCode < 300);
+          assert.ok(res.body.startsWith(
+            'import * as require_react from \'react\';'
+          ));
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
+
     after(() => {
       expressSrv.close();
     });

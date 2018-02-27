@@ -1,6 +1,6 @@
 {
   "name": "es6isch",
-  "version": "1.0.1a",
+  "version": "1.0.2",
   "description": "es6isch server",
   "main": "dist/src/index.js",
   "engines": {

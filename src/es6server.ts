@@ -37,7 +37,7 @@ export function server(args: string[]): http.Server {
       describe: 'path to node_modules which should es6isch served'
     })
     .option('modules-base', {
-      alias: 'm',
+      alias: 'n',
       describe: 'path to node_modules which should es6isch served',
       default: '/node_modules'
     })

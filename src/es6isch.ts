@@ -117,11 +117,15 @@ export class Es6isch {
 
   public static moduleResolv(req: Es6ischReq, rootMap: Es6ischMap, modMap: Es6ischMap): Es6isch {
     try {
-      const statResolvDir = fs.statSync(path.join(rootMap.absBase, req.resolvDir));
-      // console.log(`absPath:${statResolvDir}`);
       let resolvDir = req.resolvDir;
-      if (!statResolvDir.isDirectory()) {
-        resolvDir = `${path.dirname(req.resolvDir)}/`;
+      try {
+        const statResolvDir = fs.statSync(path.join(rootMap.absBase, req.resolvDir));
+        // console.log(`absPath:${statResolvDir}`);
+        if (!statResolvDir.isDirectory()) {
+          resolvDir = `${path.dirname(req.resolvDir)}/`;
+        }
+      } catch (e) {
+        /* */
       }
       const rootAbsPath = path.join(rootMap.absBase, resolvDir);
       // const modAbsPath = path.join(modMap.absBase, req.toResolv);
@@ -132,14 +136,14 @@ export class Es6isch {
         .replace(/^[\.\/]+(\/node_modules\/.*)$/, '$1');
       // console.log(`redirected\n${toTop}\n${req.toResolv}\n${redirected}\n${rootAbsPath}\n${absResolved}`);
       if (redirected.length == 0) {
-        console.log(`STOP:REDIRECT`);
+        // console.log(`STOP:REDIRECT`);
         redirected = null; // path.join(toTop, redirected);
       // if (redirected.length > 0) {
       //   if (!redirected.startsWith('.')) {
       //     redirected = `./${redirected}`;
       //   }
       } else if (redirected.endsWith(req.toResolv)) {
-        console.log(`DIRECT`);
+        // console.log(`DIRECT`);
         redirected = null; // path.join(toTop, redirected);
       } else {
         let toTop = path.relative(rootAbsPath, req.vfs.root.absBase);
@@ -147,12 +151,13 @@ export class Es6isch {
           toTop = '/';
         }
         redirected = path.join(toTop, redirected);
-        console.log(`NEEDS:REDIRECT:${toTop}:${redirected}`);
+        // console.log(`NEEDS:REDIRECT:${toTop}:${redirected}`);
       }
-      console.log(`redirected\n${redirected}:${absResolved}`);
+      // console.log(`redirected\n${redirected}:${absResolved}`);
       return new Es6isch(req, false, absResolved, redirected);
     } catch (e) {
-      console.log(e);
+      // console.log(e);
+      console.error(`can't find module:${req.toResolv}`);
       return new Es6isch(req, true);
     }
   }
@@ -161,7 +166,7 @@ export class Es6isch {
     const req = new Es6ischReq(vfs, toResolv, resolvDir);
     // console.log('TEST-NODE', req.toResolv, toResolv, resolvDir, req.vfs.modules.relBase);
     if (req.isModule) {
-      console.log('NODE_MODULES', req.toResolv);
+      // console.log('NODE_MODULES', req.toResolv);
       return Es6isch.moduleResolv(req, req.vfs.root, req.vfs.modules);
     }
     return Es6isch.fileResolv(req, req.vfs.root);
