@@ -3,10 +3,12 @@
   "version": "1.0.5",
   "description": "es6isch server",
   "bin": "bin/es6isch",
+  "main": "./index.js",
   "typings": "dist/src/index.d.ts",
   "files": [
     "dist/src/",
-    "bin"
+    "bin",
+    "index.js"
   ],
   "engines": {
     "node": ">=6.9.5"
