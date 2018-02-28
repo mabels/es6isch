@@ -45,14 +45,14 @@ describe('es6sich', () => {
       assert.equal(rv.isError, false, 'error');
       assert.equal(typeof (rv.absResolved), 'string');
       assert.equal(rv.absResolved, path.join(vfs.root.absBase, 'base', 'wurst', 'index.js'));
-      assert.equal(rv.redirected, 'base/wurst/index.js');
+      assert.equal(rv.redirected, './base/wurst/index.js');
     });
     it('resolve index.js + redirect', () => {
       const rv = Es6isch.resolve(vfs, './base/wurst/reactPackage');
       assert.equal(rv.isError, false, 'error');
       assert.equal(rv.absResolved,
         path.join(vfs.root.absBase, 'base', 'wurst', 'reactPackage', 'index.js'), 'abs');
-      assert.equal(rv.redirected, 'base/wurst/reactPackage/index.js', 'redirect');
+      assert.equal(rv.redirected, './base/wurst/reactPackage/index.js', 'redirect');
     });
     it('resolve index.js + no redirect', () => {
       const rv = Es6isch.resolve(vfs, './base/wurst/reactPackage/index.js');
@@ -67,7 +67,7 @@ describe('es6sich', () => {
       assert.equal(rv.isError, false, 'error');
       assert.equal(rv.absResolved,
         path.join(vfs.root.absBase, 'base', 'wurst', 'reactPackage', 'index.js'), 'abs');
-      assert.equal(rv.redirected, 'index.js', 'redirect');
+      assert.equal(rv.redirected, './index.js', 'redirect');
     });
 
     it('resolve:base index.js + no redirect', () => {
@@ -83,7 +83,7 @@ describe('es6sich', () => {
       assert.equal(rv.isError, false, 'error');
       assert.equal(rv.absResolved,
         path.join(vfs.root.absBase, 'base', 'wurst', 'reactPackage', 'index.js'), 'abs');
-      assert.equal(rv.redirected, 'index.js', 'redirect');
+      assert.equal(rv.redirected, './index.js', 'redirect');
     });
 
     it('resolve:base-file index.js + no redirect', () => {
@@ -246,8 +246,8 @@ describe('es6sich', () => {
         try {
           // console.log(res.body);
           assert.ok(200 <= res.statusCode && res.statusCode < 300);
-          assert.ok(res.body.startsWith(
-            'import * as require_react from \'react\';'
+          assert.ok(res.body.includes(
+            '// es6isch-project-level-pkg'
           ));
           done();
         } catch (e) {
@@ -261,8 +261,8 @@ describe('es6sich', () => {
         try {
           // console.log(res.body);
           assert.ok(200 <= res.statusCode && res.statusCode < 300);
-          assert.ok(res.body.startsWith(
-            'import * as require_react from \'react\';'
+          assert.ok(res.body.includes(
+            '// es6isch-project-level-pkg'
           ));
           done();
         } catch (e) {
@@ -277,8 +277,8 @@ describe('es6sich', () => {
           // console.log(res.statusCode);
           // console.log(res.body);
           assert.ok(200 <= res.statusCode && res.statusCode < 300);
-          assert.ok(res.body.startsWith(
-            'import * as require_doof from \'doof\';'
+          assert.ok(res.body.includes(
+            '// @patternplate/render-styled-compoments/mount.js'
           ));
           done();
         } catch (e) {

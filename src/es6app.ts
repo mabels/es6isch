@@ -1,5 +1,4 @@
 import * as express from 'express';
-// import { es6isch } from './es6isch';
 import * as path from 'path';
 import { Es6ischVfs, Es6isch } from './es6isch';
 import { transform } from './es6parse';
@@ -7,6 +6,11 @@ import { transform } from './es6parse';
 export function es6app(vfs: Es6ischVfs): express.Express {
   const app = express();
   app.use(vfs.es6ischBase, (req, res) => {
+    if (path.extname(req.url) === '.map') {
+      res.send('');
+      return;
+    }
+
     // const fsPath = `./${req.url}`;
     // console.log(fsPath, JSON.stringify(vfs, null, 2));
     res.setHeader('Content-type', 'application/javascript');

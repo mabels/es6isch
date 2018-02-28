@@ -42,6 +42,7 @@
     "@babel/traverse": "^7.0.0-beta.40",
     "@types/resolve-from": "0.0.18",
     "express": "^4.16.2",
+    "node-libs-browser": "^2.1.0",
     "resolve-from": "^4.0.0",
     "yargs": "^11.0.0"
   }

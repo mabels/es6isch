@@ -1,2 +1,1 @@
-
-const doof = require('doof');
+// @patternplate/render-styled-compoments/mount.js
