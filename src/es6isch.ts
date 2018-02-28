@@ -96,6 +96,14 @@ export class Es6isch {
   public readonly req: Es6ischReq;
   public readonly relResolved: string;
 
+  private static tryResolveFrom(from: string, id: string): string {
+    try {
+      return resolveFrom(from, id);
+    } catch (err) {
+      return null;
+    }
+  }
+
   public static fileResolv(req: Es6ischReq, map: Es6ischMap): Es6isch {
     try {
       const statResolvDir = fs.statSync(path.join(map.absBase, req.resolvDir));
@@ -149,7 +157,7 @@ export class Es6isch {
       // console.log(`FOUND:${fdir}:${rootAbsPath}:${req.toResolv}`);
       // const modAbsPath = path.join(modMap.absBase, req.toResolv);
       // console.log(`resolve:${req.toResolv}:${rootAbsPath}:${req.vfs.root.absBase}`);
-      const absResolved = nodeLibs[req.toResolv] || tryResolveFrom(rootAbsPath, req.toResolv);
+      const absResolved = nodeLibs[req.toResolv] || this.tryResolveFrom(rootAbsPath, req.toResolv);
 
       if (!absResolved) {
         throw new Error(`Could not resolve ${req.toResolv} from ${rootAbsPath}`);
@@ -194,12 +202,4 @@ export class Es6isch {
     }
   }
 
-}
-
-function tryResolveFrom(from: string, id: string): string | null {
-  try {
-    return resolveFrom(from, id);
-  } catch (err) {
-    return null;
-  }
 }

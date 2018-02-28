@@ -18,6 +18,10 @@ export class Es6Parsed {
     this.parsed = parsed;
     this.resolved = resolved;
   }
+
+  public isError(): boolean {
+    return !!this.resolved.find(i => i.isError);
+  }
 }
 
 export function transform(res: Es6isch):  Es6Parsed {
@@ -45,13 +49,22 @@ export function transform(res: Es6isch):  Es6Parsed {
   });
 
   return new Es6Parsed(res, [
-    resolved.map(r => {
-      return `import * as require_${asVar(r.req.toResolv)} from '${r.redirected || r.relResolved}';`;
+    resolved.sort((a, b) => a.isError ? 1 : 0).map(r => {
+      if (r.isError) {
+        return `/* ERROR
+          ${JSON.stringify(r, null, 2)}
+        */`;
+      } else {
+        return `import * as require_${asVar(r.req.toResolv)} from '${r.redirected || r.relResolved}';`;
+      }
     }).join('\n'),
     `const module = { exports: {} };`,
     `function require(fname) {`,
     `return ({`,
-    required.map((i) => `${JSON.stringify(i)}: require_${asVar(i)}`).join(',\n'),
+    resolved.map((i) => {
+      if (i.isError) { return null; }
+      return `${JSON.stringify(i.req.toResolv)}: require_${asVar(i.req.toResolv)}`;
+    }).filter(i => i).join(',\n'),
     `})[fname].default;`,
     `}`,
     file.toString(),

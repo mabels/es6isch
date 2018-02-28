@@ -10,9 +10,6 @@ export function es6app(vfs: Es6ischVfs): express.Express {
       res.send('');
       return;
     }
-
-    // const fsPath = `./${req.url}`;
-    // console.log(fsPath, JSON.stringify(vfs, null, 2));
     res.setHeader('Content-type', 'application/javascript');
     const resolv = Es6isch.resolve(vfs, req.url);
     if (resolv.isError) {
@@ -27,7 +24,11 @@ export function es6app(vfs: Es6ischVfs): express.Express {
       res.end();
       return;
     }
-    res.send(transform(resolv).parsed);
+    const transformed = transform(resolv);
+    if (transformed.isError()) {
+      res.statusCode = 502;
+    }
+    res.send(transformed.parsed);
     res.end();
   });
   return app;
