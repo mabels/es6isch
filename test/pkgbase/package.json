@@ -2,7 +2,7 @@
   "name": "es6isch-test",
   "version": "0.1.0",
   "description": "",
-  "main": "./base/wurst/index.js",
+  "main": "./base/wurst/index",
   "engines": {
     "node": ">=6.9.5"
   },

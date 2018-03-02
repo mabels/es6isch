@@ -1,5 +1,6 @@
 import { Es6isch } from './es6isch';
 import * as fs from 'fs';
+import * as path from 'path';
 
 const babel = require('@babel/core');
 const traverse = require('@babel/traverse').default;
@@ -45,14 +46,14 @@ export function transform(res: Es6isch):  Es6Parsed {
     }
   });
   const resolved = Array.from(new Set(required)).map(toResolv => {
-    return Es6isch.resolve(res.req.vfs, toResolv, res.req.toResolv);
+    return Es6isch.resolve(res.req.vfs, toResolv, path.dirname(res.relResolved));
   });
 
   return new Es6Parsed(res, [
     resolved.sort((a, b) => a.isError ? 1 : 0).map(r => {
       if (r.isError) {
         return `/* ERROR
-          ${JSON.stringify(r, null, 2)}
+          ${JSON.stringify({res, r}, null, 2)}
         */`;
       } else {
         return `import * as require_${asVar(r.req.toResolv)} from '${r.redirected || r.relResolved}';`;

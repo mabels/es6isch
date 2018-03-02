@@ -2,6 +2,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as resolveFrom from 'resolve-from';
+import { resolve } from 'url';
+import { NpmResolver } from './npm-file-resolver';
 
 const Module = require('module');
 const nodeLibs = require('node-libs-browser');
@@ -21,15 +23,15 @@ export function findPathOfPackageJson(str: string): string {
 }
 
 export class Es6ischMap {
-  public readonly relBase: string; // '/';
-  public readonly absBase: string; // '/test/jojo';
+  public readonly rel: string; // '/';
+  public readonly abs: string; // '/test/jojo';
 
   public constructor(absBase: string, relBase: string) {
-    this.absBase = path.resolve(absBase);
+    this.abs = path.resolve(absBase);
     if (!relBase.startsWith('/')) {
       throw new Error('Es6ischMap has to start with a /');
     }
-    this.relBase = relBase;
+    this.rel = relBase;
   }
 }
 
@@ -64,33 +66,42 @@ export class Es6ischVfs {
 
 export class Es6ischReq {
   public readonly vfs: Es6ischVfs;
-  public readonly input: string;
+  // public readonly input: string;
+  public readonly toResolvInput: string;
   public readonly toResolv: string;
   public readonly isModule: boolean;
-  public readonly resolvDir: string;
+  public readonly resolveBaseFname: string;
 
-  public constructor(vfs: Es6ischVfs, toResolv: string, resolvDir = '/') {
-    if (!toResolv || toResolv.length == 0) {
-      toResolv = '.';
+  public static create(vfs: Es6ischVfs, toResolvInput: string, resolveBaseFname: string): Es6ischReq {
+    if (!toResolvInput || toResolvInput.length == 0) {
+      toResolvInput = '.';
     }
-    this.vfs = vfs;
-    const first = toResolv.charAt(0);
-    if (toResolv.startsWith(vfs.modules.relBase)) {
-      this.toResolv = toResolv.substr(vfs.modules.relBase.length).replace(/^\/+/, '');
-      this.isModule = true;
-    } else if (!(first == '.' || first == '/')) {
-      this.toResolv = toResolv;
-      this.isModule = true;
-    } else {
-      this.toResolv = toResolv;
-      this.isModule = false;
+    // toResolveInput starts without '.' or '/' -> module
+    // toResolveInput starts with /node_modules -> module
+    let first = toResolvInput.charAt(0);
+    if (!(first == '.' || first == '/')) {
+      return new Es6ischReq(vfs, toResolvInput, toResolvInput, resolveBaseFname, true);
     }
-    this.resolvDir = resolvDir;
+    if (toResolvInput.startsWith(vfs.modules.rel)) {
+      const toResolv = toResolvInput.substr(vfs.modules.rel.length).replace(/^\/+/, '');
+      return new Es6ischReq(vfs, toResolvInput, toResolv, resolveBaseFname, true);
+    }
+    return new Es6ischReq(vfs, toResolvInput, toResolvInput, resolveBaseFname, true);
   }
+
+  constructor(vfs: Es6ischVfs, toResolvInput: string, toResolv: string, resolveBaseFname: string, isModule: boolean) {
+    this.vfs = vfs;
+    this.toResolvInput = toResolvInput;
+    this.toResolv = toResolv;
+    this.resolveBaseFname = resolveBaseFname;
+    this.isModule = isModule;
+  }
+
 }
 
 export class Es6isch {
   public readonly isError: boolean;
+  public error?: any;
   public readonly redirected: string;
   public readonly absResolved: string;
   public readonly req: Es6ischReq;
@@ -104,97 +115,95 @@ export class Es6isch {
     }
   }
 
-  public static fileResolv(req: Es6ischReq, map: Es6ischMap): Es6isch {
-    try {
-      const statResolvDir = fs.statSync(path.join(map.absBase, req.resolvDir));
-      let resolvDir = req.resolvDir;
-      if (!statResolvDir.isDirectory()) {
-        resolvDir = path.dirname(req.resolvDir);
-      }
-      const absPath = path.join(map.absBase, resolvDir, req.toResolv);
-      // console.log(`absPath:${absPath}`);
-      const absResolved = require.resolve(absPath);
-      let redirected = path.relative(absPath, absResolved);
-      if (redirected.length > 0) {
-        redirected = path.join(req.toResolv, redirected);
-        if (!redirected.startsWith('.')) {
-          redirected = `./${redirected}`;
-        }
-      }
-      return new Es6isch(req, false, absResolved, redirected);
-    } catch (e) {
-      console.error(e);
-      return new Es6isch(req, true);
-    }
+  public static error(req: Es6ischReq, err: any): Es6isch {
+    const ret = new Es6isch(req, true);
+    ret.error = err;
+    return ret;
   }
 
-  public static moduleResolv(req: Es6ischReq, rootMap: Es6ischMap, modMap: Es6ischMap): Es6isch {
-    try {
-      let resolvDir = req.resolvDir;
-      try {
-        const statResolvDir = fs.statSync(path.join(rootMap.absBase, req.resolvDir));
-        // console.log(`absPath:${statResolvDir}`);
-        if (!statResolvDir.isDirectory()) {
-          resolvDir = `${path.dirname(req.resolvDir)}/`;
-        }
-      } catch (e) {
-        /* */
-      }
-      const rootAbsPath = path.join(rootMap.absBase, resolvDir);
+  // public static fileResolv(req: Es6ischReq, map: Es6ischMap): Es6isch {
+  //   try {
+  //     const absPath = path.join(map.absBase, req.toResolv);
+  //     const redirectTo = NpmFileResolver.create([absPath]);
+  //     if (redirectTo) {
+  //       if (redirectTo.resolved) {
+  //         return new Es6isch(req, false, absPath, redirectTo.resolved);
+  //       }
+  //       return new Es6isch(req, redirectTo.error);
+  //     }
+  //     const absResolved = require.resolve(absPath);
+  //     return new Es6isch(req, false, absResolved);
+  //   } catch (e) {
+  //     console.error(e);
+  //     return new Es6isch(req, true);
+  //   }
+  // }
 
-      const nmp: string[] = Module._nodeModulePaths(rootAbsPath);
-      let fdir: string = null;
-      for (let mdirIdx = 0; !fdir && mdirIdx < nmp.length; ++mdirIdx) {
-        fdir = [
-          path.join(nmp[mdirIdx], req.toResolv, 'package.json'),
-          path.join(nmp[mdirIdx], req.toResolv, 'index.js'),
-          path.join(nmp[mdirIdx], `${req.toResolv}.js`)
-        ].find(ndir => {
-          // console.log(ndir);
-          return fs.existsSync(ndir);
-        });
-      }
-      // console.log(`FOUND:${fdir}:${rootAbsPath}:${req.toResolv}`);
-      // const modAbsPath = path.join(modMap.absBase, req.toResolv);
-      // console.log(`resolve:${req.toResolv}:${rootAbsPath}:${req.vfs.root.absBase}`);
-      const absResolved = nodeLibs[req.toResolv] || this.tryResolveFrom(rootAbsPath, req.toResolv);
+  // public static moduleResolv(req: Es6ischReq, rootMap: Es6ischMap, modMap: Es6ischMap): Es6isch {
+  //   try {
+  //     const rootAbsPath = path.join(rootMap.absBase);
+  //     const redirectTo = NpmFileResolver.create(Module._nodeModulePaths(rootAbsPath));
+  //     if (redirectTo) {
+  //       if (redirectTo.resolved) {
+  //         return new Es6isch(req, false, rootAbsPath, redirectTo.resolved);
+  //       }
+  //       return new Es6isch(req, redirectTo.error);
+  //     }
+  //     const absResolved = this.tryResolveFrom(rootAbsPath, req.toResolv);
+  //     if (!absResolved) {
+  //       throw new Error(`Could not resolve ${req.toResolv} from ${rootAbsPath}`);
+  //     }
 
-      if (!absResolved) {
-        throw new Error(`Could not resolve ${req.toResolv} from ${rootAbsPath}`);
-      }
+  //     const rewritten = path.relative(rootAbsPath, absResolved).replace(/^[\.\/]+(\/node_modules\/.*)$/, '$1');
 
-      const rewritten = path.relative(rootAbsPath, absResolved).replace(/^[\.\/]+(\/node_modules\/.*)$/, '$1');
+  //     // const needsRedirect = typeof fdir === 'string';
+  //     let toTop = path.relative(rootAbsPath, req.vfs.root.absBase);
+  //     if (toTop.length == 0) {
+  //       toTop = '/';
+  //     }
 
-      const needsRedirect = typeof fdir === 'string';
-      let toTop = path.relative(rootAbsPath, req.vfs.root.absBase);
-      if (toTop.length == 0) {
-        toTop = '/';
-      }
+  //     const redirected = path.join(toTop, rewritten);
+  //     // return needsRedirect
+  //     //   ? new Es6isch(req, false, absResolved, redirected)
+  //     //   : new Es6isch(req, false, absResolved, null, redirected);
+  //   } catch (e) {
+  //     return Es6isch.error(req, e);
+  //   }
+  // }
 
-      const redirected = path.join(toTop, rewritten);
-      return needsRedirect
-        ? new Es6isch(req, false, absResolved, redirected)
-        : new Es6isch(req, false, absResolved, null, redirected);
-    } catch (e) {
-      console.error(e);
-      return new Es6isch(req, true);
-    }
-  }
+  // public static resolving(searchPath: string[], toResolv: string, req: Es6ischReq, map: Es6ischMap): Es6isch {
+  //   try {
+  //     // const absPath = path.join(map.absBase, req.toResolv);
+  //     const redirectTo = NpmFileResolver.create(searchPath, toResolv);
+  //     if (redirectTo) {
+  //       if (redirectTo.resolved) {
+  //         return new Es6isch(req, false, toResolv, redirectTo.resolved);
+  //       }
+  //       return new Es6isch(req, redirectTo.error);
+  //     }
+  //     // const absResolved = require.resolve(absPath);
+  //     // return new Es6isch(req, false, absResolved);
+  //   } catch (e) {
+  //     console.error(e);
+  //     return new Es6isch(req, true);
+  //   }
+  // }
 
   public static resolve(vfs: Es6ischVfs, toResolv: string, resolvDir = '/'): Es6isch {
-    const req = new Es6ischReq(vfs, toResolv, resolvDir);
+    const req = Es6ischReq.create(vfs, toResolv, resolvDir);
     // console.log('TEST-NODE', req.toResolv, toResolv, resolvDir, req.vfs.modules.relBase);
     if (req.isModule) {
       // console.log('NODE_MODULES', req.toResolv);
-      return Es6isch.moduleResolv(req, req.vfs.root, req.vfs.modules);
+      // return Es6isch.resolving(Module._nodeModulePaths(vfs.modules.absBase), req, req.vfs.modules);
     }
-    return Es6isch.fileResolv(req, req.vfs.root);
+    // return Es6isch.resolving([toResolv], req, req.vfs.root);
+    return null;
   }
 
-  public constructor(req: Es6ischReq, isError: boolean,
+  public constructor(req: Es6ischReq, error: any,
     absResolved?: string, redirected?: string, relResolved?: string) {
     this.req = req;
-    this.isError = isError;
+    this.error = error;
     this.absResolved = absResolved;
     this.relResolved = relResolved;
     if (redirected && redirected.length > 0) {

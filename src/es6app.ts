@@ -26,7 +26,7 @@ export function es6app(vfs: Es6ischVfs): express.Express {
     }
     const transformed = transform(resolv);
     if (transformed.isError()) {
-      res.statusCode = 502;
+      res.statusCode = 409;
     }
     res.send(transformed.parsed);
     res.end();

@@ -58,8 +58,8 @@ export function server(args: string[]): http.Server {
   return app.listen(argv.port, argv.listenAddr, () => {
     console.log([
       `We speak es6isch on [${argv.listenAddr}:${argv.port}]`,
-      `mounted on: ${vfs.root.absBase}:${vfs.root.relBase}`,
-      `modules on: ${vfs.modules.absBase}:${vfs.modules.relBase}`,
+      `mounted on: ${vfs.root.abs}:${vfs.root.rel}`,
+      `modules on: ${vfs.modules.abs}:${vfs.modules.rel}`,
       `html on: ${argv.htmlBase}`
     ].join('\n'));
   });
