@@ -1,6 +1,6 @@
 import * as express from 'express';
-import Es6App from './es6app';
-import { Es6ischVfs } from './es6isch';
+import { app } from './app';
+import { Vfs } from './vfs';
 import * as http from 'http';
 
 const yargs = require('yargs');
@@ -42,25 +42,25 @@ export function server(args: string[]): http.Server {
     })
     .parse(args);
 
-  const vfs = Es6ischVfs.from({
+  const vfs = Vfs.from({
     rootAbsBase: argv.rootAbsBase,
     moduleAbsBase: argv.nodeModules,
     es6ischBase: argv.es6ischBase,
     modulesBase: argv.modulesBase,
   });
-  const app = express();
+  const eapp = express();
 
   if (argv.htmlBase) {
-    app.use('/', express.static(argv.htmlBase));
+    eapp.use('/', express.static(argv.htmlBase));
   }
-  app.use(Es6App(vfs));
+  eapp.use(app(vfs));
 
-  return app.listen(argv.port, argv.listenAddr, () => {
+  return eapp.listen(argv.port, argv.listenAddr, () => {
     console.log([
       `We speak es6isch on [${argv.listenAddr}:${argv.port}]`,
       `mounted on: ${vfs.root.abs}:${vfs.root.rel}`,
       `modules on: ${vfs.modules.abs}:${vfs.modules.rel}`,
-      `html on: ${argv.htmlBase}`
-    ].join('\n'));
+      argv.htmlBase ? `html on: ${argv.htmlBase}` : null
+    ].filter(i => i).join('\n'));
   });
 }

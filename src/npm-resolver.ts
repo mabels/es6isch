@@ -1,17 +1,15 @@
 
 import * as path from 'path';
-import * as fs from 'fs';
-import { inflate } from 'zlib';
-import { Es6ischMap } from '.';
-import { resolve } from 'dns';
+// import * as fs from 'fs';
+import { Cachator } from './cachator';
 
-enum NpmFoundState {
+export enum NpmFoundState {
   UNDEF = 'undef',
   FOUND = 'found',
   NOTFOUND = 'notfound'
 }
 
-export abstract class NpmResolve {
+export abstract class Resolved {
   public readonly root: string;
   public readonly relDir: string;
   public readonly inFname: string;
@@ -19,7 +17,7 @@ export abstract class NpmResolve {
   public readonly found: NpmFoundState;
   public readonly error?: any;
 
-  public static file(root: string, relDir: string, inFname: string, suffix = ''): () => NpmResolve {
+  public static file(root: string, relDir: string, inFname: string, suffix = ''): () => Resolved {
     return () => {
       const fname = `${inFname}${suffix}`;
       // const absFname = path.join(root, relDir, fname);
@@ -28,29 +26,25 @@ export abstract class NpmResolve {
     };
   }
 
-  public static found(root: string, relDir: string, inFname: string): () => NpmResolve {
+  public static found(root: string, relDir: string, inFname: string): () => Resolved {
     return () => {
       // console.log(`FOUND`);
       return new FileNpmResolve(root, relDir, inFname, null, NpmFoundState.FOUND);
     };
   }
 
-  public static notFound(root: string, relDir: string, inFname: string): () => NpmResolve {
+  public static notFound(root: string, relDir: string, inFname: string): () => Resolved {
     return () => {
       // console.log(`NOTFOUND`);
       return new FileNpmResolve(root, relDir, inFname, null, NpmFoundState.NOTFOUND);
     };
   }
 
-  public static package(root: string, relDir: string): () => NpmResolve {
+  public static package(rc: Cachator, root: string, relDir: string): () => Resolved {
     return () => {
       let packageJson: any;
       const absPackageJson = path.join(root, relDir, 'package.json');
-      try {
-        packageJson = JSON.parse(fs.readFileSync(absPackageJson).toString());
-      } catch (e) {
-        packageJson = {};
-      }
+      packageJson = rc.readJsonFile(absPackageJson) || {};
       return new PackageNpmResolve(root, relDir, packageJson.main || 'index', null);
     };
   }
@@ -64,27 +58,27 @@ export abstract class NpmResolve {
     this.error = error;
   }
 
-  public abstract reResolv(cb: () => NpmResolve): NpmResolve;
+  public abstract reResolv(cb: () => Resolved): Resolved;
 
   public toObj(): any {
     return this;
   }
 }
 
-export class FileNpmResolve extends NpmResolve {
+export class FileNpmResolve extends Resolved {
   constructor(absBase: string, absFname: string, relFname: string, error: any, found: NpmFoundState) {
     super(absBase, absFname, relFname, error, found);
   }
-  public reResolv(cb: () => NpmResolve): NpmResolve {
+  public reResolv(cb: () => Resolved): Resolved {
     return null;
   }
 }
 
-export class PackageNpmResolve extends NpmResolve {
+export class PackageNpmResolve extends Resolved {
   constructor(absBase: string, absFname: string, relFname: string, error: any) {
     super(absBase, absFname, relFname, error, NpmFoundState.UNDEF);
   }
-  public reResolv(cb: () => NpmResolve): NpmResolve {
+  public reResolv(cb: () => Resolved): Resolved {
     return cb();
   }
 }
@@ -113,34 +107,28 @@ export interface NpmRelAbs {
 }
 
 export class NpmResolver {
+  public static readonly EXTENTIONS: string[] = ['.js', '.es6'];
+  public readonly fsCache: Cachator;
   public readonly root: string;
   public readonly searchPath: string[];
   public readonly currentRelFname: string;
   public readonly inFname: string;
-  public readonly searchResolves: Map<string, NpmResolve[]>;
-  public resolves: NpmResolve[];
-  public error?: any;
+  public readonly searchResolves: Map<string, Resolved[]>;
+  public resolves: Resolved[];
+  // public error?: any;
 
-  public static stat(fname: string): fs.Stats {
-    try {
-      return fs.statSync(fname);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  public static toRelDirectory(root: string, currentRelFname: string): string {
+  public static toRelDirectory(rc: Cachator, root: string, currentRelFname: string): string {
     const fname = path.join(root, currentRelFname);
-    const state = NpmResolver.stat(fname);
+    const state = rc.statSync(fname);
     if (state && state.isDirectory()) {
       return currentRelFname;
     }
     return path.dirname(currentRelFname);
   }
 
-  public static create(root: string, searchPath: string[],
+  public static create(rc: Cachator, root: string, searchPath: string[],
     currentRelFname: string, inFname: string): NpmResolver {
-    const nfr = new NpmResolver(root, searchPath, currentRelFname, inFname);
+    const nfr = new NpmResolver(rc, root, searchPath, currentRelFname, inFname);
     const relModulePath = path.join(currentRelFname, inFname);
     if (relModulePath.startsWith('node_modules')) {
       const modulePath = relModulePath.replace(/^node_modules\//, '');
@@ -148,7 +136,7 @@ export class NpmResolver {
       // const currentRelDir = NpmResolver.toRelDirectory(searchPath[0], inFname);
       nfr.loopSearchPath(searchPath, '', modulePath, 0);
     } else if (inFname.substr(0, 1) == '.') {
-      const currentRelDir = NpmResolver.toRelDirectory(root, currentRelFname);
+      const currentRelDir = NpmResolver.toRelDirectory(rc, root, currentRelFname);
       nfr.loopSearchPath([root].concat(searchPath), currentRelDir, inFname, 0);
     } else {
       // console.log(`Module:${inFname}`);
@@ -158,38 +146,30 @@ export class NpmResolver {
     return nfr;
   }
 
-  public createTestNames(root: string, relDir: string, inFname: string): (() => NpmResolve)[] {
+  public createTestNames(root: string, relDir: string, inFname: string): (() => Resolved)[] {
     const relDirectory = path.join(relDir, inFname);
     const absDirectory = path.join(root, relDirectory);
-    const absDirectoryStat = NpmResolver.stat(absDirectory);
+    const absDirectoryStat = this.fsCache.statSync(absDirectory);
     if (absDirectoryStat) {
       if (absDirectoryStat.isDirectory()) {
         // console.log(`createName:Dir:${absDirectory}:${relDirectory}`);
         return [
-          NpmResolve.package(root, relDirectory),
-          NpmResolve.file(root, relDirectory, 'index')
+          Resolved.package(this.fsCache, root, relDirectory),
+          Resolved.file(root, relDirectory, 'index')
         ];
       }
       // console.log(`createName:Found:${inFname}`);
       return [
-        NpmResolve.found(root, relDir, inFname)
+        Resolved.found(root, relDir, inFname)
       ];
     }
-    if (inFname.endsWith('.js') || inFname.endsWith('.es6')) {
-      return [NpmResolve.notFound(root, relDir, inFname)];
+    if (NpmResolver.EXTENTIONS.includes(path.extname(inFname))) {
+      return [Resolved.notFound(root, relDir, inFname)];
     }
-    // if isDirectory(path.join(spath, base))
-    // if spath, base => isPackageRoot
-    // PackageResolve(dir)
-    // console.log(`createName:!state:${spath.path}:${base}`);
-    return [
-      // base == . or ./ or endsWith / || '/.' -> [index,[package.json]]
-      NpmResolve.file(root, relDir, inFname, '.js'),
-      NpmResolve.file(root, relDir, inFname, '.es6'),
-    ];
+    return NpmResolver.EXTENTIONS.map(ext => Resolved.file(root, relDir, inFname, ext));
   }
 
-  public loopSearchPath(searchPath: string[], relDir: string, inFname: string, sidx: number): NpmResolve {
+  public loopSearchPath(searchPath: string[], relDir: string, inFname: string, sidx: number): Resolved {
     if (sidx >= searchPath.length) {
       return null;
     }
@@ -201,7 +181,7 @@ export class NpmResolver {
     // found direct file
     const absFname = path.join(dir, base);
     try {
-      const stat = fs.statSync(absFname);
+      const stat = this.fsCache.statSync(absFname);
       if (!stat || stat.isFile()) {
         return absFname;
       }
@@ -213,7 +193,7 @@ export class NpmResolver {
   }
 
   public loopNames(searchPath: string[], relDir: string, inFname: string, sidx: number,
-    names: (() => NpmResolve)[], nidx: number): NpmResolve {
+    names: (() => Resolved)[], nidx: number): Resolved {
     if (nidx >= names.length) {
       return this.loopSearchPath(searchPath, relDir, inFname, sidx + 1);
     }
@@ -241,36 +221,16 @@ export class NpmResolver {
       return ret;
     }
     return this.loopNames(searchPath, relDir, inFname, 0, names, nidx + 1);
-
-    // createTestNames(searchPath[sidx], relDir, inFname): (() => NpmResolve)[] {
-    // const findFile = this.findFile(searchPath[sidx], path.join());
-    // console.log(`findFile:${resolved.skip()}:${base}:${nidx}:FF=${findFile}:` +
-    //   `${this.searchPath[idx].path}:${resolved.constructor.name}:${JSON.stringify(resolved, null, 2)}`);
-    // if (findFile) {
-    //   // resolved.absFname = findFile;
-    //   // resolved.relFname = base;
-    //   return resolved;
-    // }
-    // const lsp = resolved.reResolv(() => {
-    //   console.log(`reResolv:${base}:${JSON.stringify(resolved.toObj(), null, 2)}:${this.searchPath[idx]}`);
-    //   return NpmFileResolver.create([fileRoot(resolved.absBase)], resolved.relFname).redirected;
-    //   // return null;
-    // });
-    // console.log(`lsp:${base}:${!!lsp}`);
-    // if (lsp) {
-    //   return lsp;
-    // }
-
-    // return this.loopNames(base, names, idx, nidx + 1);
   }
 
-  public constructor(root: string, searchPath: string[],
+  public constructor(rc: Cachator, root: string, searchPath: string[],
     currentRelFname: string, inFname: string) {
+    this.fsCache = rc;
     this.root = root;
     this.searchPath = searchPath;
     this.currentRelFname = currentRelFname;
     this.inFname = inFname;
-    this.searchResolves = new Map<string, NpmResolve[]>();
+    this.searchResolves = new Map<string, Resolved[]>();
     this.resolves = null;
   }
 
@@ -294,6 +254,10 @@ export class NpmResolver {
   public module(): boolean {
     return path.join(this.currentRelFname).startsWith('node_modules') ||
            !(this.inFname.substr(0, 1) == '.');
+  }
+
+  public error(): boolean {
+    return this.resolves.map(r => r.error).filter(i => i).length > 1;
   }
 
 }

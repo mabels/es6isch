@@ -1,4 +1,6 @@
-export { server } from './es6server';
-export { transform } from './es6parse';
-export { es6app } from './es6app';
+export { Transform } from './transform';
+export { Vfs } from './vfs';
+export { server } from './server';
+export { app } from './app';
+export { NpmResolver } from './npm-resolver';
 export * from './es6isch';

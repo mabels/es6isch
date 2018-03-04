@@ -7,7 +7,10 @@
     "pretty": true,
     "jsx": "react",
     "experimentalDecorators": true,
-    "declaration": true
+    "declaration": true,
+    "lib": [
+      "es2016"
+    ]
   },
   "exclude": [
     "node_modules"
