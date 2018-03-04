@@ -10,6 +10,7 @@ export function app(vfs: Vfs): express.Express {
   eapp.use(vfs.es6ischBase, (req, res) => {
     const resolv = es6isch.resolve('/', req.url);
     if (!resolv.npmResolver.found()) {
+      console.log(`XXXXX:${req.url}:${JSON.stringify(resolv)}`);
       res.statusCode = 404;
       res.end();
       return;
@@ -23,7 +24,8 @@ export function app(vfs: Vfs): express.Express {
         try {
           res.send(es6isch.cachator.readFileSync(resolv.npmResolver.resolved().abs));
         } catch (e) {
-          res.statusCode = 404;
+          // console.log(`XXXXX:${resolv.npmResolver.resolved().abs}`);
+          res.statusCode = 405;
           res.send(e);
         }
       } else {

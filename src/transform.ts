@@ -7,10 +7,6 @@ import { NpmResolver } from './npm-resolver';
 const babel = require('@babel/core');
 const traverse = require('@babel/traverse').default;
 
-function asVar(x: string): string {
-  return x.replace(/([^A-Za-z0-9]+)/g, '_');
-}
-
 export class Transform {
   public readonly base: NpmResolver;
   public readonly resolved: NpmResolver[];
@@ -24,6 +20,7 @@ export class Transform {
   }
 
   public static fromString(cc: Cachator, base: NpmResolver, file: string): Transform {
+    // console.log(`Hallo:${file}`);
     const ast = babel.parse(file);
     // const packagePath = findPathOfPackageJson(fname);
     let required: string[] = [];
@@ -47,20 +44,17 @@ export class Transform {
     return new Transform(base, [
       resolved.sort((a, b) => a.found() ? 0 : 1).map(r => {
         if (!r.found()) {
-          return `/* ERROR
-            ${JSON.stringify({ base, r }, null, 2)}
-          */`;
+          return `/* not found:${r.is}:[${r.inFname}] */`;
         } else {
-          return `import * as require_${asVar(r.inFname)} from '${r.resolved().rel}';`;
+          return `import * as require_${r.asVar()} from '${r.isPath()}';`;
         }
       }).join('\n'),
       `const module = { exports: {} };`,
       `function require(fname) {`,
       `return ({`,
-      resolved.map((i) => {
-        if (!i.found()) { return null; }
-        return `${JSON.stringify(i.inFname)}: require_${asVar(i.inFname)}`;
-      }).filter(i => i).join(',\n'),
+      resolved.filter(i => i.found()).map((i) => {
+        return `${JSON.stringify(i.inFname)}: require_${i.asVar()}`;
+      }).join(',\n'),
       `})[fname].default;`,
       `}`,
       file.toString(),

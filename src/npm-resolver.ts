@@ -9,6 +9,11 @@ export enum NpmFoundState {
   NOTFOUND = 'notfound'
 }
 
+export enum NpmIs {
+  FILE = 'FILE',
+  MODULE = 'MODULE'
+}
+
 export abstract class Resolved {
   public readonly root: string;
   public readonly relDir: string;
@@ -83,11 +88,11 @@ export class PackageNpmResolve extends Resolved {
   }
 }
 
-export interface NpmSearchPath {
-  path: string;
-  isPackage: boolean;
-  isModuleDirectory: boolean;
-}
+// export interface NpmSearchPath {
+//   path: string;
+//   isPackage: boolean;
+//   isModuleDirectory: boolean;
+// }
 
 // export function fileRoot(pRoot: string, base = ''): NpmSearchPath {
 //   const p = path.join(pRoot, base);
@@ -107,7 +112,10 @@ export interface NpmRelAbs {
 }
 
 export class NpmResolver {
+  public static readonly RENODEMODULES: RegExp = /^[\/]*node_modules\//;
   public static readonly EXTENTIONS: string[] = ['.js', '.es6'];
+  public static readonly NOMODULE: string[] = ['.', '/'];
+  public readonly is: NpmIs;
   public readonly fsCache: Cachator;
   public readonly root: string;
   public readonly searchPath: string[];
@@ -128,22 +136,45 @@ export class NpmResolver {
 
   public static create(rc: Cachator, root: string, searchPath: string[],
     currentRelFname: string, inFname: string): NpmResolver {
-    const nfr = new NpmResolver(rc, root, searchPath, currentRelFname, inFname);
-    const relModulePath = path.join(currentRelFname, inFname);
-    if (relModulePath.startsWith('node_modules')) {
-      const modulePath = relModulePath.replace(/^node_modules\//, '');
-      // console.log(`NodeModules:${inFname}:${modulePath}`);
-      // const currentRelDir = NpmResolver.toRelDirectory(searchPath[0], inFname);
+    const workFname = inFname.length ? inFname : '.';
+    const workCurrentRelFname = currentRelFname.length ? currentRelFname : '/';
+    const relModulePath = path.join(workCurrentRelFname, workFname);
+    const isRelInFname = this.NOMODULE.includes(workFname.substr(0, 1));
+    const isRelCurrentRelFname = this.NOMODULE.includes(workCurrentRelFname.substr(0, 1));
+    // console.log(`>>>:relPath=${relModulePath}:currentFname=${workCurrentRelFname}:inFname=${inFname}`);
+    if (NpmResolver.RENODEMODULES.test(relModulePath)) {
+      // started with /node_modules is a module
+      const modulePath = relModulePath.replace(NpmResolver.RENODEMODULES, '');
+      // console.log(`started with node_modules:${modulePath}`);
+      const nfr = new NpmResolver(rc, root, searchPath, workCurrentRelFname, NpmIs.MODULE, inFname);
       nfr.loopSearchPath(searchPath, '', modulePath, 0);
-    } else if (inFname.substr(0, 1) == '.') {
-      const currentRelDir = NpmResolver.toRelDirectory(rc, root, currentRelFname);
-      nfr.loopSearchPath([root].concat(searchPath), currentRelDir, inFname, 0);
+      return nfr;
+    } else if (!isRelInFname) {
+      // current inFname is a module
+      // console.log(`inFname is module:${inFname}`);
+      const nfr = new NpmResolver(rc, root, searchPath, workCurrentRelFname, NpmIs.MODULE, inFname);
+      nfr.loopSearchPath(searchPath, '', workFname, 0);
+      return nfr;
+    } else if (!isRelCurrentRelFname && isRelInFname) {
+      // current is a module and path is relative
+      // console.log(`currentRelFname is module:${currentRelFname} and ${inFname}`);
+      const moduleResolv = new NpmResolver(rc, root, searchPath, '', NpmIs.MODULE, currentRelFname);
+      moduleResolv.loopSearchPath(searchPath, '', currentRelFname, 0);
+      if (!moduleResolv.found()) {
+        return moduleResolv;
+      }
+      const modpath = path.join(path.dirname(moduleResolv.resolved().rel), inFname);
+      const nfr = new NpmResolver(rc, root, searchPath, currentRelFname, NpmIs.MODULE, inFname);
+      nfr.loopSearchPath(searchPath, '', modpath, 0);
+      // console.log('nfr:', moduleResolv.resolved().rel, nfr.resolved().rel, nfr.module());
+      return nfr;
     } else {
-      // console.log(`Module:${inFname}`);
-      // const currentRelDir = NpmResolver.toRelDirectory(searchPath[0], inFname);
-      nfr.loopSearchPath(searchPath, '', inFname, 0);
+      // console.log(`INFNAME:${inFname}`);
+      const currentRelDir = NpmResolver.toRelDirectory(rc, root, currentRelFname);
+      const nfr = new NpmResolver(rc, root, searchPath, currentRelFname, NpmIs.FILE, inFname);
+      nfr.loopSearchPath([root].concat(searchPath), currentRelDir, workFname, 0);
+      return nfr;
     }
-    return nfr;
   }
 
   public createTestNames(root: string, relDir: string, inFname: string): (() => Resolved)[] {
@@ -224,7 +255,8 @@ export class NpmResolver {
   }
 
   public constructor(rc: Cachator, root: string, searchPath: string[],
-    currentRelFname: string, inFname: string) {
+    currentRelFname: string, is: NpmIs, inFname: string) {
+    this.is = is;
     this.fsCache = rc;
     this.root = root;
     this.searchPath = searchPath;
@@ -252,12 +284,25 @@ export class NpmResolver {
   }
 
   public module(): boolean {
-    return path.join(this.currentRelFname).startsWith('node_modules') ||
-           !(this.inFname.substr(0, 1) == '.');
+    return this.is == NpmIs.MODULE;
+    // path.join(this.currentRelFname).startsWith('node_modules') ||
+    //       !(this.inFname.substr(0, 1) == '.');
   }
 
   public error(): boolean {
     return this.resolves.map(r => r.error).filter(i => i).length > 1;
+  }
+
+  public isPath(): string {
+    if (this.is == NpmIs.FILE) {
+      return this.resolved().rel;
+    } else {
+      return path.join('/node_modules', this.resolved().rel);
+    }
+  }
+
+  public asVar(): string {
+    return this.inFname.replace(/([^A-Za-z0-9]+)/g, '_');
   }
 
 }
