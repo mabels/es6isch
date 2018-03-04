@@ -1,16 +1,9 @@
-
-import * as fs from 'fs';
-import * as path from 'path';
-import * as resolveFrom from 'resolve-from';
-import { resolve } from 'url';
 import { ParseCache } from './parse-cache';
 import { Cachator } from './cachator';
-import { Vfs } from './vfs';
-import { MappedPath } from './mapped-path';
 import { Resolver } from './resolver';
 
 const Module = require('module');
-const nodeLibs = require('node-libs-browser');
+// const nodeLibs = require('node-libs-browser');
 
 export class Es6isch {
   public readonly parseCache: ParseCache;

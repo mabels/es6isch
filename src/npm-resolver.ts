@@ -14,7 +14,7 @@ export enum NpmIs {
   MODULE = 'MODULE'
 }
 
-export abstract class Resolved {
+export class Resolved {
   public readonly root: string;
   public readonly relDir: string;
   public readonly inFname: string;
@@ -25,23 +25,19 @@ export abstract class Resolved {
   public static file(root: string, relDir: string, inFname: string, suffix = ''): () => Resolved {
     return () => {
       const fname = `${inFname}${suffix}`;
-      // const absFname = path.join(root, relDir, fname);
-      // console.log(`FileNpmResolve:${relDir}:${fname}`);
-      return new FileNpmResolve(root, relDir, fname, null, NpmFoundState.UNDEF);
+      return new Resolved(root, relDir, fname, null, NpmFoundState.UNDEF);
     };
   }
 
   public static found(root: string, relDir: string, inFname: string): () => Resolved {
     return () => {
-      // console.log(`FOUND`);
-      return new FileNpmResolve(root, relDir, inFname, null, NpmFoundState.FOUND);
+      return new Resolved(root, relDir, inFname, null, NpmFoundState.FOUND);
     };
   }
 
   public static notFound(root: string, relDir: string, inFname: string): () => Resolved {
     return () => {
-      // console.log(`NOTFOUND`);
-      return new FileNpmResolve(root, relDir, inFname, null, NpmFoundState.NOTFOUND);
+      return new Resolved(root, relDir, inFname, null, NpmFoundState.NOTFOUND);
     };
   }
 
@@ -50,7 +46,7 @@ export abstract class Resolved {
       let packageJson: any;
       const absPackageJson = path.join(root, relDir, 'package.json');
       packageJson = rc.readJsonFile(absPackageJson) || {};
-      return new PackageNpmResolve(root, relDir, packageJson.main || 'index', null);
+      return new Resolved(root, relDir, packageJson.main || 'index', null, NpmFoundState.UNDEF);
     };
   }
 
@@ -63,48 +59,10 @@ export abstract class Resolved {
     this.error = error;
   }
 
-  public abstract reResolv(cb: () => Resolved): Resolved;
-
   public toObj(): any {
     return this;
   }
 }
-
-export class FileNpmResolve extends Resolved {
-  constructor(absBase: string, absFname: string, relFname: string, error: any, found: NpmFoundState) {
-    super(absBase, absFname, relFname, error, found);
-  }
-  public reResolv(cb: () => Resolved): Resolved {
-    return null;
-  }
-}
-
-export class PackageNpmResolve extends Resolved {
-  constructor(absBase: string, absFname: string, relFname: string, error: any) {
-    super(absBase, absFname, relFname, error, NpmFoundState.UNDEF);
-  }
-  public reResolv(cb: () => Resolved): Resolved {
-    return cb();
-  }
-}
-
-// export interface NpmSearchPath {
-//   path: string;
-//   isPackage: boolean;
-//   isModuleDirectory: boolean;
-// }
-
-// export function fileRoot(pRoot: string, base = ''): NpmSearchPath {
-//   const p = path.join(pRoot, base);
-//   if (!base && path.relative(pRoot, p).length == 0) {
-//     return { path: pRoot, isPackage: true, isModuleDirectory: false };
-//   }
-//   return { path: p, isPackage: false, isModuleDirectory: false };
-// }
-
-// export function moduleRoot(root: string): NpmSearchPath {
-//   return { path: root, isPackage: false, isModuleDirectory: true };
-// }
 
 export interface NpmRelAbs {
   rel: string;

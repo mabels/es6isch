@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { NpmRelAbs, NpmResolver } from './npm-resolver';
+import { NpmResolver } from './npm-resolver';
 import { Transform } from './transform';
 
 export class Timestamped<T> {
@@ -62,7 +62,7 @@ export class Cachator {
   private readonly readFileCache: Cache<string, any>;
   private readonly npmResolverCache: Cache<string, NpmResolver>;
   private readonly transformCache: Cache<string, Transform>;
-  private readonly cacheTTL: number;
+  // private readonly cacheTTL: number;
 
   constructor(cacheTTL: number) {
     // this.relDirectoryCache = new Map<string, Map<string, NpmRelAbs>>();

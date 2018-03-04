@@ -1,6 +1,3 @@
-// import { Es6isch } from './es6isch';
-// import * as fs from 'fs';
-import * as path from 'path';
 import { Cachator } from './cachator';
 import { NpmResolver } from './npm-resolver';
 

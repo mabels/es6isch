@@ -1,5 +1,3 @@
-import { Vfs } from './vfs';
-import { MappedPath } from './mapped-path';
 import { Transform } from './transform';
 import { Cachator } from './cachator';
 import { NpmResolver } from './npm-resolver';
