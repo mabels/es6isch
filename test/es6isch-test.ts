@@ -4,6 +4,7 @@ import * as request from 'request';
 import * as express from 'express';
 import * as path from 'path';
 import * as http from 'http';
+import { NpmResolverCreateParam } from '../src/npm-resolver';
 
 // const cwd = process.cwd();
 describe('es6sich', () => {
@@ -11,9 +12,20 @@ describe('es6sich', () => {
   const pkgbase = new Es6isch(path.join(process.cwd(), 'test', 'pkgbase'));
   const projectBase = new Es6isch(path.join(process.cwd(), 'test', 'projectBase', 'packages', 'api'));
 
+  const npmResolvCreateParam: NpmResolverCreateParam = {
+        fsCache: pkgbase.cachator,
+        root: pkgbase.rootDir,
+        searchPath: [],
+        currentRelFname: '',
+        inFname: '.'
+  };
+
   describe('NpmFileResolver', () => {
     it('.', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [], '', '.');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        inFname: '.'
+      });
       assert.equal(nfr.inFname, '.', 'inFname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.redirected(), true, 'error');
@@ -21,7 +33,10 @@ describe('es6sich', () => {
       assert.equal(nfr.resolved().rel, 'base/wurst/index.js', 'resolved');
     });
     it('./doof/./hund/.././../', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [], '', './doof/./hund/.././../');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        inFname: './doof/./hund/.././../'
+      });
       assert.equal(nfr.inFname, './doof/./hund/.././../', 'inFname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.redirected(), true, 'error');
@@ -30,21 +45,30 @@ describe('es6sich', () => {
     });
 
     it('./murks', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [], '', './murks');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        inFname: './murks'
+      });
       assert.equal(nfr.inFname, './murks', 'inFname');
       assert.equal(nfr.found(), false, 'found');
       assert.equal(nfr.redirected(), false, 'redirected');
       assert.equal(nfr.error(), false, 'error');
     });
     it('./murks.js', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [], '', './murks.js');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        inFname: './murks.js'
+      });
       assert.equal(nfr.inFname, './murks.js', 'inFname');
       assert.equal(nfr.found(), false, 'found');
       assert.equal(nfr.redirected(), false, 'redirected');
       assert.equal(nfr.error(), false, 'error');
     });
     it('./base/wurst', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [], '', './base/wurst');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        inFname: './base/wurst'
+      });
       // console.log(nfr);
       assert.equal(nfr.inFname, './base/wurst', 'fname');
       assert.equal(nfr.found(), true, 'found');
@@ -54,7 +78,10 @@ describe('es6sich', () => {
       assert.equal(nfr.error(), false, 'error');
     });
     it('./base/wurst/index.js', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [], '', './base/wurst/index.js');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        inFname: './base/wurst/index.js'
+      });
       assert.equal(nfr.inFname, './base/wurst/index.js', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.found(), true, 'found');
@@ -63,7 +90,11 @@ describe('es6sich', () => {
       assert.equal(nfr.resolved().rel, 'base/wurst/index.js', 'resolved');
     });
     it('./base/wurst/index.js:./test.js', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [], './base/wurst/index.js', './test.js');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        currentRelFname: './base/wurst/index.js',
+        inFname: './test.js'
+      });
       assert.equal(nfr.inFname, './test.js', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.found(), true, 'found');
@@ -72,7 +103,11 @@ describe('es6sich', () => {
       assert.equal(nfr.resolved().rel, 'base/wurst/test.js', 'resolved');
     });
     it('./base/wurst/index.js:.', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [], './base/wurst/index.js', '.');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        currentRelFname: './base/wurst/index.js',
+        inFname: '.'
+      });
       assert.equal(nfr.inFname, '.', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.found(), true, 'found');
@@ -81,7 +116,11 @@ describe('es6sich', () => {
       assert.equal(nfr.resolved().rel, 'base/wurst/index.js', 'resolved');
     });
     it('./base/wurst/index.js:./murks', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [], './base/wurst/index.js', './murks.js');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        currentRelFname: './base/wurst/index.js',
+        inFname: './murks.js'
+      });
       assert.equal(nfr.inFname, './murks.js', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.found(), false, 'found');
@@ -90,11 +129,15 @@ describe('es6sich', () => {
 
     // api
     it('apilevelpkg', () => {
-      const nfr = NpmResolver.create(projectBase.cachator, projectBase.rootDir, [
-        path.join(projectBase.rootDir, 'node_modules'),
-        path.join(projectBase.rootDir, '..', '..', 'node_modules')
-      ],
-        './src/test.js', 'apilevelpkg');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [
+          path.join(projectBase.rootDir, 'node_modules'),
+          path.join(projectBase.rootDir, '..', '..', 'node_modules')
+        ],
+        currentRelFname: './src/test.js',
+        inFname: 'apilevelpkg'
+      });
       assert.equal(nfr.inFname, 'apilevelpkg', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.found(), true, 'found');
@@ -105,10 +148,15 @@ describe('es6sich', () => {
     });
 
     it('projectlevelpkg', () => {
-      const nfr = NpmResolver.create(projectBase.cachator, projectBase.rootDir, [
-        path.join(projectBase.rootDir, 'node_modules'),
-        path.join(projectBase.rootDir, '..', '..', 'node_modules')
-      ], './src/test.js', 'projectlevelpkg');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [
+          path.join(projectBase.rootDir, 'node_modules'),
+          path.join(projectBase.rootDir, '..', '..', 'node_modules')
+        ],
+        currentRelFname: './src/test.js',
+        inFname: 'projectlevelpkg'
+      });
       // console.log(nfr);
       assert.equal(nfr.inFname, 'projectlevelpkg', 'fname');
       assert.equal(nfr.error(), false, 'error');
@@ -121,10 +169,15 @@ describe('es6sich', () => {
     });
 
     it('projectlevelpkg/test', () => {
-      const nfr = NpmResolver.create(projectBase.cachator, projectBase.rootDir, [
-        path.join(projectBase.rootDir, 'node_modules'),
-        path.join(projectBase.rootDir, '..', '..', 'node_modules')
-      ], './src/test.js', 'projectlevelpkg/test');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [
+          path.join(projectBase.rootDir, 'node_modules'),
+          path.join(projectBase.rootDir, '..', '..', 'node_modules')
+        ],
+        currentRelFname: './src/test.js',
+        inFname: 'projectlevelpkg/test'
+      });
       assert.equal(nfr.inFname, 'projectlevelpkg/test', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.found(), true, 'found');
@@ -136,10 +189,15 @@ describe('es6sich', () => {
     });
 
     it('projectlevelpkg/test.js', () => {
-      const nfr = NpmResolver.create(projectBase.cachator, projectBase.rootDir, [
-        path.join(projectBase.rootDir, 'node_modules'),
-        path.join(projectBase.rootDir, '..', '..', 'node_modules')
-      ], './src/test.js', 'projectlevelpkg/test.js');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [
+          path.join(projectBase.rootDir, 'node_modules'),
+          path.join(projectBase.rootDir, '..', '..', 'node_modules')
+        ],
+        currentRelFname: './src/test.js',
+        inFname: 'projectlevelpkg/test.js'
+      });
       assert.equal(nfr.inFname, 'projectlevelpkg/test.js', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.found(), true, 'found');
@@ -151,10 +209,15 @@ describe('es6sich', () => {
     });
 
     it('projectlevelpkg/murks.js', () => {
-      const nfr = NpmResolver.create(projectBase.cachator, projectBase.rootDir, [
-        path.join(projectBase.rootDir, 'node_modules'),
-        path.join(projectBase.rootDir, '..', '..', 'node_modules')
-      ], './src/test.js', 'projectlevelpkg/murks');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [
+          path.join(projectBase.rootDir, 'node_modules'),
+          path.join(projectBase.rootDir, '..', '..', 'node_modules')
+        ],
+        currentRelFname: './src/test.js',
+        inFname: 'projectlevelpkg/murks'
+      });
       assert.equal(nfr.inFname, 'projectlevelpkg/murks', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.module(), true);
@@ -163,10 +226,15 @@ describe('es6sich', () => {
     });
 
     it('node_modules:projectlevelpkg', () => {
-      const nfr = NpmResolver.create(projectBase.cachator, projectBase.rootDir, [
-        path.join(projectBase.rootDir, 'node_modules'),
-        path.join(projectBase.rootDir, '..', '..', 'node_modules')
-      ], 'node_modules', 'projectlevelpkg');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [
+          path.join(projectBase.rootDir, 'node_modules'),
+          path.join(projectBase.rootDir, '..', '..', 'node_modules')
+        ],
+        currentRelFname: 'node_modules',
+        inFname: 'projectlevelpkg'
+      });
       assert.equal(nfr.inFname, 'projectlevelpkg', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.module(), true);
@@ -178,10 +246,15 @@ describe('es6sich', () => {
     });
 
     it('node_modules/projectlevelpkg:.', () => {
-      const nfr = NpmResolver.create(projectBase.cachator, projectBase.rootDir, [
-        path.join(projectBase.rootDir, 'node_modules'),
-        path.join(projectBase.rootDir, '..', '..', 'node_modules')
-      ], 'node_modules/projectlevelpkg', '.');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [
+          path.join(projectBase.rootDir, 'node_modules'),
+          path.join(projectBase.rootDir, '..', '..', 'node_modules')
+        ],
+        currentRelFname: 'node_modules/projectlevelpkg',
+        inFname: '.'
+      });
       assert.equal(nfr.inFname, '.', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.redirected(), true, 'redirected');
@@ -193,10 +266,15 @@ describe('es6sich', () => {
     });
 
     it('node_modules/projectlevelpkg/test.js:.', () => {
-      const nfr = NpmResolver.create(projectBase.cachator, projectBase.rootDir, [
-        path.join(projectBase.rootDir, 'node_modules'),
-        path.join(projectBase.rootDir, '..', '..', 'node_modules')
-      ], 'node_modules/projectlevelpkg/test.js', '.');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [
+          path.join(projectBase.rootDir, 'node_modules'),
+          path.join(projectBase.rootDir, '..', '..', 'node_modules')
+        ],
+        currentRelFname: 'node_modules/projectlevelpkg/test.js',
+        inFname: '.'
+      });
       assert.equal(nfr.inFname, '.', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.module(), true);
@@ -208,8 +286,12 @@ describe('es6sich', () => {
     });
 
     it('pkgtest', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [path.join(pkgbase.rootDir, 'node_modules')],
-        './base/wurst/index.js', 'pkgtest');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [path.join(pkgbase.rootDir, 'node_modules')],
+        currentRelFname: './base/wurst/index.js',
+        inFname: 'pkgtest'
+      });
       assert.equal(nfr.inFname, 'pkgtest', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.found(), true, 'found');
@@ -219,8 +301,12 @@ describe('es6sich', () => {
       assert.equal(nfr.resolved().rel, 'pkgtest/test.js', 'resolved');
     });
     it('pkgtest/test.js', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [path.join(pkgbase.rootDir, 'node_modules')],
-        './base/wurst/index.js', 'pkgtest/test.js');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [path.join(pkgbase.rootDir, 'node_modules')],
+        currentRelFname: './base/wurst/index.js',
+        inFname: 'pkgtest/test.js'
+      });
       assert.equal(nfr.inFname, 'pkgtest/test.js', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.found(), true, 'found');
@@ -230,8 +316,12 @@ describe('es6sich', () => {
       assert.equal(nfr.resolved().rel, 'pkgtest/test.js', 'resolved');
     });
     it('pkgtest/murks.js', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [path.join(pkgbase.rootDir, 'node_modules')],
-        './base/wurst/index.js', 'pkgtest/murks');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [path.join(pkgbase.rootDir, 'node_modules')],
+        currentRelFname: './base/wurst/index.js',
+        inFname: 'pkgtest/murks'
+      });
       assert.equal(nfr.inFname, 'pkgtest/murks', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.module(), true);
@@ -240,8 +330,12 @@ describe('es6sich', () => {
     });
 
     it('node_modules:pkgtest', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [path.join(pkgbase.rootDir, 'node_modules')],
-        'node_modules', 'pkgtest');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [path.join(pkgbase.rootDir, 'node_modules')],
+        currentRelFname: 'node_modules',
+        inFname: 'pkgtest'
+      });
       assert.equal(nfr.inFname, 'pkgtest', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.module(), true);
@@ -252,8 +346,12 @@ describe('es6sich', () => {
     });
 
     it('node_modules/pkgtest:.', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [path.join(pkgbase.rootDir, 'node_modules')],
-        'node_modules/pkgtest', '.');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [path.join(pkgbase.rootDir, 'node_modules')],
+        currentRelFname: 'node_modules/pkgtest',
+        inFname: '.'
+      });
       // console.log(nfr);
       assert.equal(nfr.inFname, '.', 'fname');
       assert.equal(nfr.error(), false, 'error');
@@ -265,8 +363,12 @@ describe('es6sich', () => {
     });
 
     it('node_modules/pkgtest:test.js', () => {
-      const nfr = NpmResolver.create(pkgbase.cachator, pkgbase.rootDir, [path.join(pkgbase.rootDir, 'node_modules')],
-        'node_modules/pkgtest', './test.js');
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [path.join(pkgbase.rootDir, 'node_modules')],
+        currentRelFname: 'node_modules/pkgtest',
+        inFname: './test.js'
+      });
       assert.equal(nfr.inFname, './test.js', 'fname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.module(), true);
@@ -344,7 +446,7 @@ describe('es6sich', () => {
       const rv = pkgbase.resolve('./index.js', './base/wurst/reactPackage').npmResolver;
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
-      assert.equal(rv.redirected(), true, 'found');
+      assert.equal(rv.redirected(), false, 'redirect');
       assert.equal(rv.resolved().abs, path.join(pkgbase.rootDir, 'base', 'wurst', 'reactPackage', 'index.js'), 'abs');
       assert.equal(rv.resolved().rel, 'base/wurst/reactPackage/index.js', 'redirect');
     });
@@ -386,7 +488,7 @@ describe('es6sich', () => {
       assert.equal(rv.resolved().rel, 'base/wurst/index.js', 'redirect');
     });
 
-    it('resolve node_module pktest/test not found', () => {
+    it('resolve node_module pktest/test.js not found', () => {
       const rv = pkgbase.resolve('pkgtest/test.js', './murks.js').npmResolver;
       // console.log(rv);
       assert.equal(rv.error(), false, 'error');
@@ -396,14 +498,14 @@ describe('es6sich', () => {
       // assert.equal(rv.resolved().rel, null, 'redirect');
     });
 
-    it('resolve node_module pktest/test not found', () => {
+    it('resolve node_module pktest/test.js found ./test.js', () => {
       const rv = pkgbase.resolve('pkgtest/test.js', './test.js').npmResolver;
       // console.log(rv);
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), false, 'redirect');
-      // assert.equal(rv.resolved().abs, path.join(pkgbase.rootDir, 'node_modules', 'pkgtest', 'test.js'), 'abs');
-      // assert.equal(rv.resolved().rel, null, 'redirect');
+      assert.equal(rv.resolved().abs, path.join(pkgbase.rootDir, 'node_modules', 'pkgtest', 'test.js'), 'abs');
+      assert.equal(rv.resolved().rel, 'pkgtest/test.js', 'redirect');
     });
 
     it('resolve node_module abs redirect', () => {
@@ -508,16 +610,34 @@ describe('es6sich', () => {
     });
   });
 
-  describe('test-server', () => {
+  describe('/wurst test-server', () => {
     let expressSrv: http.Server;
     let port = ~~((Math.random() * (0x10000 - 1024)) + 1024);
     before(() => {
       const eapp = express();
       eapp.use('/wurst', app(Vfs.from({
         rootAbsBase: './test/projectBase/packages/api',
-        es6ischBase: '/'
+        es6ischBase: '/wurst'
       })));
       expressSrv = eapp.listen(port, 'localhost', () => { /* */ });
+    });
+
+    it('redirect', (done) => {
+      request({
+          followRedirect: false,
+          followAllRedirects: false,
+          url: `http://localhost:${port}/wurst/`
+        }, (err, res) => {
+        try {
+          // console.log(res.statusCode);
+          // console.log(res.headers.location);
+          assert.ok(res.statusCode == 302);
+          assert.ok(res.headers.location, '/wurst/src/test.js');
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
     });
 
     it('absolute-redirect', (done) => {
@@ -527,7 +647,7 @@ describe('es6sich', () => {
           // console.log(res.body);
           assert.ok(200 <= res.statusCode && res.statusCode < 300);
           assert.ok(res.body.startsWith(
-            'import * as require_apilevelpkg from \'/node_modules/apilevelpkg/test.js\''));
+            'import * as require_apilevelpkg from \'/wurst/node_modules/apilevelpkg/test.js\''), res.body);
           done();
         } catch (e) {
           done(e);
@@ -615,10 +735,10 @@ describe('es6sich', () => {
         try {
           // console.log(res.statusCode);
           // console.log(res.body);
-          assert.ok(200 <= res.statusCode && res.statusCode < 300);
+          assert.ok(200 <= res.statusCode && res.statusCode < 300, '' + res.statusCode);
           assert.ok(res.body.includes(
             '// es6isch-project-level-pkg'
-          ));
+          ), res.body);
           done();
         } catch (e) {
           done(e);
@@ -630,10 +750,10 @@ describe('es6sich', () => {
       request(`http://localhost:${port}/node_modules/projectlevelpkg/test.js`, (err, res) => {
         try {
           // console.log(res.body);
-          assert.ok(200 <= res.statusCode && res.statusCode < 300);
+          assert.ok(200 <= res.statusCode && res.statusCode < 300, '' + res.statusCode);
           assert.ok(res.body.includes(
             '// es6isch-project-level-pkg'
-          ));
+          ), res.body);
           done();
         } catch (e) {
           done(e);

@@ -18,8 +18,9 @@ export class Es6isch {
     this.modulePaths = Module._nodeModulePaths(rootDir);
   }
 
-  public resolve(currentRelFname: string, inFname: string): Resolver {
-    return Resolver.create(this.cachator, this.rootDir, this.modulePaths, currentRelFname, inFname);
+  public resolve(currentRelFname: string, inFname: string, redirectBase = '/'): Resolver {
+    return Resolver.create(this.cachator, redirectBase,
+      this.rootDir, this.modulePaths, currentRelFname, inFname);
   }
 
 }

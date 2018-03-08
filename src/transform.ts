@@ -35,7 +35,7 @@ export class Transform {
       }
     });
     const resolved = Array.from(new Set(required)).map(toResolv => {
-      return cc.npmResolver(base.root, base.searchPath, base.resolved().rel, toResolv);
+      return cc.npmResolver(base.redirectBase, base.root, base.searchPath, base.resolved().rel, toResolv);
     });
 
     return new Transform(base, [

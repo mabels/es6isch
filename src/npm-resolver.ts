@@ -69,7 +69,20 @@ export interface NpmRelAbs {
   abs: string;
 }
 
-export class NpmResolver {
+export interface NpmResolverCreateParam {
+  fsCache: Cachator;
+  root: string;
+  searchPath: string[];
+  currentRelFname: string;
+  inFname: string;
+  redirectBase?: string;
+}
+
+export interface NpmResolverParam extends NpmResolverCreateParam {
+  is: NpmIs;
+}
+
+export class NpmResolver implements NpmResolverParam {
   public static readonly RENODEMODULES: RegExp = /^[\/]*node_modules\//;
   public static readonly EXTENTIONS: string[] = ['.js', '.es6'];
   public static readonly NOMODULE: string[] = ['.', '/'];
@@ -79,6 +92,7 @@ export class NpmResolver {
   public readonly searchPath: string[];
   public readonly currentRelFname: string;
   public readonly inFname: string;
+  public readonly redirectBase?: string;
   public readonly searchResolves: Map<string, Resolved[]>;
   public resolves: Resolved[];
   // public error?: any;
@@ -92,10 +106,9 @@ export class NpmResolver {
     return path.dirname(currentRelFname);
   }
 
-  public static create(rc: Cachator, root: string, searchPath: string[],
-    currentRelFname: string, inFname: string): NpmResolver {
-    const workFname = inFname.length ? inFname : '.';
-    const workCurrentRelFname = currentRelFname.length ? currentRelFname : '/';
+  public static create(nrp: NpmResolverCreateParam): NpmResolver {
+    const workFname = nrp.inFname.length ? nrp.inFname : '.';
+    const workCurrentRelFname = nrp.currentRelFname.length ? nrp.currentRelFname : '/';
     const relModulePath = path.join(workCurrentRelFname, workFname);
     const isRelInFname = this.NOMODULE.includes(workFname.substr(0, 1));
     const isRelCurrentRelFname = this.NOMODULE.includes(workCurrentRelFname.substr(0, 1));
@@ -104,33 +117,52 @@ export class NpmResolver {
       // started with /node_modules is a module
       const modulePath = relModulePath.replace(NpmResolver.RENODEMODULES, '');
       // console.log(`started with node_modules:${modulePath}`);
-      const nfr = new NpmResolver(rc, root, searchPath, workCurrentRelFname, NpmIs.MODULE, inFname);
-      nfr.loopSearchPath(searchPath, '', modulePath, 0);
+      const nfr = new NpmResolver({
+        ...nrp,
+        currentRelFname: workCurrentRelFname,
+        is: NpmIs.MODULE,
+        inFname: nrp.inFname
+      });
+      nfr.loopSearchPath(nfr.searchPath, '', modulePath, 0);
       return nfr;
     } else if (!isRelInFname) {
       // current inFname is a module
       // console.log(`inFname is module:${inFname}`);
-      const nfr = new NpmResolver(rc, root, searchPath, workCurrentRelFname, NpmIs.MODULE, inFname);
-      nfr.loopSearchPath(searchPath, '', workFname, 0);
+      const nfr = new NpmResolver({
+        ...nrp,
+        currentRelFname: workCurrentRelFname,
+        is: NpmIs.MODULE,
+        inFname: nrp.inFname});
+      nfr.loopSearchPath(nfr.searchPath, '', workFname, 0);
       return nfr;
     } else if (!isRelCurrentRelFname && isRelInFname) {
       // current is a module and path is relative
       // console.log(`currentRelFname is module:${currentRelFname} and ${inFname}`);
-      const moduleResolv = new NpmResolver(rc, root, searchPath, '', NpmIs.MODULE, currentRelFname);
-      moduleResolv.loopSearchPath(searchPath, '', currentRelFname, 0);
+      const moduleResolv = new NpmResolver({
+        ...nrp,
+        currentRelFname: '',
+        is: NpmIs.MODULE,
+        inFname: nrp.currentRelFname
+      });
+      moduleResolv.loopSearchPath(moduleResolv.searchPath, '', moduleResolv.inFname, 0);
       if (!moduleResolv.found()) {
         return moduleResolv;
       }
-      const modpath = path.join(path.dirname(moduleResolv.resolved().rel), inFname);
-      const nfr = new NpmResolver(rc, root, searchPath, currentRelFname, NpmIs.MODULE, inFname);
-      nfr.loopSearchPath(searchPath, '', modpath, 0);
+      const modpath = path.join(path.dirname(moduleResolv.resolved().rel), nrp.inFname);
+      const nfr = new NpmResolver({
+        ...nrp,
+        is: NpmIs.MODULE,
+        inFname: nrp.inFname});
+      nfr.loopSearchPath(nfr.searchPath, '', modpath, 0);
       // console.log('nfr:', moduleResolv.resolved().rel, nfr.resolved().rel, nfr.module());
       return nfr;
     } else {
       // console.log(`INFNAME:${inFname}`);
-      const currentRelDir = NpmResolver.toRelDirectory(rc, root, currentRelFname);
-      const nfr = new NpmResolver(rc, root, searchPath, currentRelFname, NpmIs.FILE, inFname);
-      nfr.loopSearchPath([root].concat(searchPath), currentRelDir, workFname, 0);
+      const currentRelDir = NpmResolver.toRelDirectory(nrp.fsCache, nrp.root, nrp.currentRelFname);
+      const nfr = new NpmResolver({
+        ...nrp,
+        is: NpmIs.FILE});
+      nfr.loopSearchPath([nfr.root].concat(nfr.searchPath), currentRelDir, workFname, 0);
       return nfr;
     }
   }
@@ -212,14 +244,14 @@ export class NpmResolver {
     return this.loopNames(searchPath, relDir, inFname, 0, names, nidx + 1);
   }
 
-  public constructor(rc: Cachator, root: string, searchPath: string[],
-    currentRelFname: string, is: NpmIs, inFname: string) {
-    this.is = is;
-    this.fsCache = rc;
-    this.root = root;
-    this.searchPath = searchPath;
-    this.currentRelFname = currentRelFname;
-    this.inFname = inFname;
+  public constructor(npr: NpmResolverParam) {
+    this.is = npr.is;
+    this.fsCache = npr.fsCache;
+    this.root = npr.root;
+    this.searchPath = npr.searchPath;
+    this.currentRelFname = npr.currentRelFname;
+    this.inFname = npr.inFname;
+    this.redirectBase = npr.redirectBase;
     this.searchResolves = new Map<string, Resolved[]>();
     this.resolves = null;
   }
@@ -255,7 +287,7 @@ export class NpmResolver {
     if (this.is == NpmIs.FILE) {
       return this.resolved().rel;
     } else {
-      return path.join('/node_modules', this.resolved().rel);
+      return path.join(path.join(this.redirectBase || '/', '/node_modules'), this.resolved().rel);
     }
   }
 

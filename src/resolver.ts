@@ -7,10 +7,10 @@ export class Resolver {
   private readonly cachator: Cachator;
   private transformCached: Transform;
 
-  public static create(fc: Cachator, rootDir: string, mPaths: string[],
+  public static create(fc: Cachator, redirectBase: string, rootDir: string, mPaths: string[],
     currentRelFname: string, inFname: string): Resolver {
     // const npm = NpmResolver.create(fc, rootDir, mPaths, currentRelFname, inFname);
-    const npm = fc.npmResolver(rootDir, mPaths, currentRelFname, inFname);
+    const npm = fc.npmResolver(redirectBase, rootDir, mPaths, currentRelFname, inFname);
     return new Resolver(fc, npm);
   }
 

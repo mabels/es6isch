@@ -85,9 +85,17 @@ export class Cachator {
     return this.jsonCache.get(fname, (f) => JSON.parse(fs.readFileSync(f).toString()));
   }
 
-  public npmResolver(rootDir: string, mPaths: string[], currentRelFname: string, inFname: string): NpmResolver {
-    const key = [currentRelFname, inFname, rootDir].concat(mPaths).join('/');
-    return this.npmResolverCache.get(key, () => NpmResolver.create(this, rootDir, mPaths, currentRelFname, inFname));
+  public npmResolver(redirectBase: string, rootDir: string,
+    mPaths: string[], currentRelFname: string, inFname: string): NpmResolver {
+    const key = [currentRelFname, inFname, rootDir].sort().concat(mPaths).join('/');
+    return this.npmResolverCache.get(key, () => NpmResolver.create({
+      fsCache: this,
+      root: rootDir,
+      searchPath: mPaths,
+      currentRelFname: currentRelFname,
+      inFname: inFname,
+      redirectBase: redirectBase
+    }));
   }
 
   public transform(base: NpmResolver): Transform {

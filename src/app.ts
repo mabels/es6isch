@@ -6,10 +6,11 @@ import { Vfs } from './vfs';
 export function app(vfs: Vfs): express.Express {
   const es6isch = new Es6isch(vfs.root.abs);
   const eapp = express();
-  eapp.use(vfs.es6ischBase, (req, res) => {
-    const resolv = es6isch.resolve('/', req.url);
+  eapp.use('/', (req, res) => {
+    const resolv = es6isch.resolve('/', req.url, req.baseUrl);
+    // console.log(`resolv:${resolv}`);
     if (!resolv.npmResolver.found()) {
-      console.log(`XXXXX:${req.url}:${JSON.stringify(resolv)}`);
+      // console.log(`XXXXX:${req.url}:${JSON.stringify(resolv)}`);
       res.statusCode = 404;
       res.end();
       return;
