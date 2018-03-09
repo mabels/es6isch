@@ -18,7 +18,7 @@ export class Resolved {
   public readonly root: string;
   public readonly relDir: string;
   public readonly inFname: string;
-  public readonly redirect: boolean;
+  // public readonly redirect: boolean;
   public readonly found: NpmFoundState;
   public readonly error?: any;
 
@@ -54,7 +54,7 @@ export class Resolved {
     this.root = root;
     this.relDir = relDir;
     this.inFname = inFname;
-    this.redirect = false;
+    // this.redirect = false;
     this.found = found;
     this.error = error;
   }
@@ -75,6 +75,7 @@ export interface NpmResolverCreateParam {
   searchPath: string[];
   currentRelFname: string;
   inFname: string;
+  injectRedirects?: Map<string, any>;
   redirectBase?: string;
 }
 
@@ -93,6 +94,7 @@ export class NpmResolver implements NpmResolverParam {
   public readonly currentRelFname: string;
   public readonly inFname: string;
   public readonly redirectBase?: string;
+  public readonly injectRedirects: Map<string, NpmResolver>;
   public readonly searchResolves: Map<string, Resolved[]>;
   public resolves: Resolved[];
   // public error?: any;
@@ -123,7 +125,9 @@ export class NpmResolver implements NpmResolverParam {
         is: NpmIs.MODULE,
         inFname: nrp.inFname
       });
-      nfr.loopSearchPath(nfr.searchPath, '', modulePath, 0);
+      if (!nfr.injectRedirect(modulePath)) {
+        nfr.loopSearchPath(nfr.searchPath, '', modulePath, 0);
+      }
       return nfr;
     } else if (!isRelInFname) {
       // current inFname is a module
@@ -133,7 +137,9 @@ export class NpmResolver implements NpmResolverParam {
         currentRelFname: workCurrentRelFname,
         is: NpmIs.MODULE,
         inFname: nrp.inFname});
-      nfr.loopSearchPath(nfr.searchPath, '', workFname, 0);
+      if (!nfr.injectRedirect(workFname)) {
+        nfr.loopSearchPath(nfr.searchPath, '', workFname, 0);
+      }
       return nfr;
     } else if (!isRelCurrentRelFname && isRelInFname) {
       // current is a module and path is relative
@@ -144,7 +150,9 @@ export class NpmResolver implements NpmResolverParam {
         is: NpmIs.MODULE,
         inFname: nrp.currentRelFname
       });
-      moduleResolv.loopSearchPath(moduleResolv.searchPath, '', moduleResolv.inFname, 0);
+      if (!moduleResolv.injectRedirect(moduleResolv.inFname)) {
+        moduleResolv.loopSearchPath(moduleResolv.searchPath, '', moduleResolv.inFname, 0);
+      }
       if (!moduleResolv.found()) {
         return moduleResolv;
       }
@@ -153,7 +161,9 @@ export class NpmResolver implements NpmResolverParam {
         ...nrp,
         is: NpmIs.MODULE,
         inFname: nrp.inFname});
-      nfr.loopSearchPath(nfr.searchPath, '', modpath, 0);
+      if (!nfr.injectRedirect(modpath)) {
+        nfr.loopSearchPath(nfr.searchPath, '', modpath, 0);
+      }
       // console.log('nfr:', moduleResolv.resolved().rel, nfr.resolved().rel, nfr.module());
       return nfr;
     } else {
@@ -190,6 +200,16 @@ export class NpmResolver implements NpmResolverParam {
     return NpmResolver.EXTENTIONS.map(ext => Resolved.file(root, relDir, inFname, ext));
   }
 
+  public injectRedirect(inFname: string): boolean {
+    // console.log(`injectRedirect:${inFname}`);
+    const redir = this.injectRedirects.get(inFname);
+    if (!redir) {
+      return false;
+    }
+    redir.resolves.forEach(rs => this.pushResolved(redir.searchPath[0], rs));
+    return true;
+  }
+
   public loopSearchPath(searchPath: string[], relDir: string, inFname: string, sidx: number): Resolved {
     if (sidx >= searchPath.length) {
       return null;
@@ -213,19 +233,23 @@ export class NpmResolver implements NpmResolverParam {
     // found direct file
   }
 
+  public pushResolved(spath: string, resolved: Resolved): void {
+    let resolves = this.searchResolves.get(spath);
+    if (!resolves) {
+      resolves = [];
+      this.searchResolves.set(spath, resolves);
+      this.resolves = resolves;
+    }
+    resolves.push(resolved);
+  }
+
   public loopNames(searchPath: string[], relDir: string, inFname: string, sidx: number,
     names: (() => Resolved)[], nidx: number): Resolved {
     if (nidx >= names.length) {
       return this.loopSearchPath(searchPath, relDir, inFname, sidx + 1);
     }
     const resolved = names[nidx]();
-    let resolves = this.searchResolves.get(searchPath[sidx]);
-    if (!resolves) {
-      resolves = [];
-      this.searchResolves.set(searchPath[sidx], resolves);
-      this.resolves = resolves;
-    }
-    resolves.push(resolved);
+    this.pushResolved(searchPath[sidx], resolved);
     if (resolved.error ||
         resolved.found == NpmFoundState.FOUND ||
         resolved.found == NpmFoundState.NOTFOUND) {
@@ -253,6 +277,7 @@ export class NpmResolver implements NpmResolverParam {
     this.inFname = npr.inFname;
     this.redirectBase = npr.redirectBase;
     this.searchResolves = new Map<string, Resolved[]>();
+    this.injectRedirects = npr.injectRedirects || (new Map<string, any>());
     this.resolves = null;
   }
 

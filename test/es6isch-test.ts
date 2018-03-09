@@ -5,6 +5,7 @@ import * as express from 'express';
 import * as path from 'path';
 import * as http from 'http';
 import { NpmResolverCreateParam } from '../src/npm-resolver';
+import { attachNodeLibsInjector } from '../src/node-libs-injector';
 
 // const cwd = process.cwd();
 describe('es6sich', () => {
@@ -12,13 +13,13 @@ describe('es6sich', () => {
   const pkgbase = new Es6isch(path.join(process.cwd(), 'test', 'pkgbase'));
   const projectBase = new Es6isch(path.join(process.cwd(), 'test', 'projectBase', 'packages', 'api'));
 
-  const npmResolvCreateParam: NpmResolverCreateParam = {
+  const npmResolvCreateParam: NpmResolverCreateParam = attachNodeLibsInjector({
         fsCache: pkgbase.cachator,
         root: pkgbase.rootDir,
         searchPath: [],
         currentRelFname: '',
-        inFname: '.'
-  };
+        inFname: '.',
+  });
 
   describe('NpmFileResolver', () => {
     it('.', () => {
@@ -378,6 +379,39 @@ describe('es6sich', () => {
       assert.equal(nfr.resolved().rel, 'pkgtest/test.js', 'resolved');
     });
 
+    it('stream', () => {
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [path.join(pkgbase.rootDir, 'node_modules')],
+        currentRelFname: 'pkgtest',
+        inFname: 'stream'
+      });
+      assert.equal(nfr.inFname, 'stream', 'fname');
+      assert.equal(nfr.error(), false, 'error');
+      assert.equal(nfr.module(), true);
+      assert.equal(nfr.found(), true, 'found');
+      assert.equal(nfr.redirected(), true, 'redirected');
+      assert.equal(nfr.resolved().abs, require('node-libs-browser').stream);
+      assert.equal(nfr.resolved().rel, 'stream-browserify/index.js', 'resolved');
+    });
+
+    it('node_modules/stream', () => {
+      const nfr = NpmResolver.create({
+        ...npmResolvCreateParam,
+        searchPath: [path.join(pkgbase.rootDir, 'node_modules')],
+        currentRelFname: '',
+        inFname: 'node_modules/stream'
+      });
+      // console.log(nfr);
+      assert.equal(nfr.inFname, 'node_modules/stream', 'fname');
+      assert.equal(nfr.error(), false, 'error');
+      assert.equal(nfr.module(), true);
+      assert.equal(nfr.found(), true, 'found');
+      assert.equal(nfr.redirected(), true, 'redirected');
+      assert.equal(nfr.resolved().abs, require('node-libs-browser').stream);
+      assert.equal(nfr.resolved().rel, 'stream-browserify/index.js', 'resolved');
+    });
+
   });
 
   describe('resolve', () => {
@@ -579,15 +613,38 @@ describe('es6sich', () => {
       assert.equal(rv.resolved().rel, 'pkgtest/test.js', 'redirect');
     });
 
+    it('resolve stream redirect', () => {
+      const rv = pkgbase.resolve('/test.js', 'stream').npmResolver;
+      // console.log(rv);
+      assert.equal(rv.error(), false, 'error');
+      assert.equal(rv.found(), true, 'found');
+      assert.equal(rv.module(), true, 'module');
+      assert.equal(rv.redirected(), true, 'redirect');
+      assert.equal(rv.resolved().abs, require('node-libs-browser').stream, 'abs');
+      assert.equal(rv.resolved().rel, 'stream-browserify/index.js', 'redirect');
+    });
+
+    it('resolve /node_modules/stream redirect', () => {
+      const rv = pkgbase.resolve('/node_modules/stream', '.').npmResolver;
+      // console.log(rv);
+      assert.equal(rv.error(), false, 'error');
+      assert.equal(rv.found(), true, 'found');
+      assert.equal(rv.module(), true, 'module');
+      assert.equal(rv.redirected(), true, 'redirect');
+      assert.equal(rv.resolved().abs, require('node-libs-browser').stream, 'abs');
+      assert.equal(rv.resolved().rel, 'stream-browserify/index.js', 'redirect');
+    });
+
   });
   describe('parse', () => {
     it('test import module', () => {
       const transformed = Transform.run(pkgbase.cachator,
         pkgbase.resolve('/', './base/wurst/reactPackage/index.js').npmResolver);
       const parsed = transformed.transformed;
-      assert.ok(transformed.resolved.filter(i => !i.found()).length == 0);
-      assert.ok(parsed.startsWith('import'));
-      assert.ok(parsed.includes(`from '/node_modules/pkgtest/test.js';`));
+      assert.ok(transformed.resolved.filter(i => !i.found()).length == 0, '1:' + parsed);
+      assert.ok(parsed.startsWith('import'), '2:' + parsed);
+      assert.ok(parsed.includes(`from '/node_modules/pkgtest/test.js';`), '3:' + parsed);
+      assert.ok(parsed.includes(`from '/node_modules/domain-browser/source/index.js';`), '4:' + parsed);
     });
     it('test import relative', () => {
       const transformed = Transform.run(pkgbase.cachator,

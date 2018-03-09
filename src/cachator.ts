@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import { NpmResolver } from './npm-resolver';
 import { Transform } from './transform';
+import { attachNodeLibsInjector } from './node-libs-injector';
+// import { nodeLibsInjector } from './node-libs-injector';
 
 export class Timestamped<T> {
   public readonly timeStamp: number;
@@ -88,14 +90,14 @@ export class Cachator {
   public npmResolver(redirectBase: string, rootDir: string,
     mPaths: string[], currentRelFname: string, inFname: string): NpmResolver {
     const key = [currentRelFname, inFname, rootDir].sort().concat(mPaths).join('/');
-    return this.npmResolverCache.get(key, () => NpmResolver.create({
+    return this.npmResolverCache.get(key, () => NpmResolver.create(attachNodeLibsInjector({
       fsCache: this,
       root: rootDir,
       searchPath: mPaths,
       currentRelFname: currentRelFname,
       inFname: inFname,
-      redirectBase: redirectBase
-    }));
+      redirectBase: redirectBase,
+    })));
   }
 
   public transform(base: NpmResolver): Transform {
