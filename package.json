@@ -39,6 +39,7 @@
     "@types/rimraf": "^2.0.2",
     "@types/babel-types": "^7.0.0",
     "@types/request": "^2.47.0",
+    "@types/resolve-from": "0.0.18",
     "chai": ">=4.1.2",
     "mocha": "4.1.0",
     "tslint": ">=5.7.0",
@@ -48,10 +49,8 @@
   "dependencies": {
     "@babel/core": "^7.0.0-beta.40",
     "@babel/traverse": "^7.0.0-beta.40",
-    "@types/resolve-from": "0.0.18",
     "express": "^4.16.2",
     "node-libs-browser": "^2.1.0",
-    "resolve-from": "^4.0.0",
     "yargs": "^11.0.0"
   }
 }
