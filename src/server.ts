@@ -1,6 +1,5 @@
 import * as express from 'express';
-import { app } from './app';
-import { Vfs } from './vfs';
+import { Es6isch, Vfs } from './index';
 import * as http from 'http';
 
 const yargs = require('yargs');
@@ -46,7 +45,7 @@ export function server(args: string[]): http.Server {
   });
   const eapp = express();
 
-  eapp.use(app(vfs));
+  eapp.use(Es6isch.app(vfs));
 
   return eapp.listen(argv.port, argv.listenAddr, () => {
     console.log([

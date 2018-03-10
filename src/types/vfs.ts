@@ -1,4 +1,4 @@
-import { MappedPath } from './types/mapped-path';
+import { MappedPath } from './mapped-path';
 import * as path from 'path';
 
 export interface VfsParam {

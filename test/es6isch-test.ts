@@ -1,5 +1,8 @@
 import { assert } from 'chai';
-import { Vfs, Es6isch, Transform, server, app, NpmResolver, NpmIs } from '../src/index';
+import { Transform } from '../src/transform';
+import { server } from '../src/server';
+import { NpmResolver } from '../src/npm-resolver';
+import { Vfs, Es6isch, NpmIs } from '../src/index';
 import * as request from 'request';
 import * as express from 'express';
 import * as path from 'path';
@@ -416,34 +419,34 @@ describe('es6sich', () => {
 
   describe('resolve', () => {
     it('file-resolv directory to ./unknown', () => {
-      const rv = pkgbase.resolve('./unknown', 'base').npmResolver;
+      const rv = pkgbase.resolve('./unknown', 'base');
       assert.equal(rv.inFname, 'base');
       assert.equal(rv.found(), false);
       assert.equal(rv.redirected(), false);
       // assert.equal(rv.resolved(), null, `FFFFF:${rv.resolved()}`);
     });
     it('file-resolv file to ./unknown', () => {
-      const rv = pkgbase.resolve('./unknown', 'base/index.html').npmResolver;
+      const rv = pkgbase.resolve('./unknown', 'base/index.html');
       assert.equal(rv.inFname, 'base/index.html');
       assert.equal(rv.found(), false);
       assert.equal(rv.redirected(), false);
       // assert.equal(rv.redirected(), false);
     });
     it('module-resolv directory to unknown', () => {
-      const rv = pkgbase.resolve('/base', 'basePkg').npmResolver;
+      const rv = pkgbase.resolve('/base', 'basePkg');
       assert.equal(rv.inFname, 'basePkg');
       assert.equal(rv.found(), false);
       assert.equal(rv.redirected(), false);
     });
     it('module-resolv file to unknown', () => {
-      const rv = pkgbase.resolve('/base', 'basePkg/index.html').npmResolver;
+      const rv = pkgbase.resolve('/base', 'basePkg/index.html');
       assert.equal(rv.inFname, 'basePkg/index.html');
       assert.equal(rv.found(), false);
       assert.equal(rv.redirected(), false);
     });
 
     it('resolve package.json:main + redirect', () => {
-      const rv = pkgbase.resolve('/', '.').npmResolver;
+      const rv = pkgbase.resolve('/', '.');
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), true, 'found');
@@ -451,7 +454,7 @@ describe('es6sich', () => {
       assert.equal(rv.resolved().rel, '/base/wurst/index.js');
     });
     it('resolve index.js + redirect', () => {
-      const rv = pkgbase.resolve('./base/wurst/reactPackage', '.').npmResolver;
+      const rv = pkgbase.resolve('./base/wurst/reactPackage', '.');
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), true, 'found');
@@ -459,7 +462,7 @@ describe('es6sich', () => {
       assert.equal(rv.resolved().rel, 'base/wurst/reactPackage/index.js', 'redirect');
     });
     it('resolve index.js + no redirect', () => {
-      const rv = pkgbase.resolve('./base/wurst/reactPackage', './index.js').npmResolver;
+      const rv = pkgbase.resolve('./base/wurst/reactPackage', './index.js');
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), false, 'found');
@@ -468,7 +471,7 @@ describe('es6sich', () => {
     });
 
     it('resolve:base index.js + redirect', () => {
-      const rv = pkgbase.resolve('.', './base/wurst/reactPackage').npmResolver;
+      const rv = pkgbase.resolve('.', './base/wurst/reactPackage');
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), true, 'found');
@@ -477,7 +480,7 @@ describe('es6sich', () => {
     });
 
     it('resolve:base index.js + no redirect', () => {
-      const rv = pkgbase.resolve('./index.js', './base/wurst/reactPackage').npmResolver;
+      const rv = pkgbase.resolve('./index.js', './base/wurst/reactPackage');
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), false, 'redirect');
@@ -486,7 +489,7 @@ describe('es6sich', () => {
     });
 
     it('resolve:base-file index.js + redirect', () => {
-      const rv = pkgbase.resolve('.', './base/wurst/reactPackage').npmResolver;
+      const rv = pkgbase.resolve('.', './base/wurst/reactPackage');
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), true, 'found');
@@ -496,7 +499,7 @@ describe('es6sich', () => {
     });
 
     it('resolve:base-file index.js + no redirect', () => {
-      const rv = pkgbase.resolve('./index.js', './base/wurst/reactPackage/index.js').npmResolver;
+      const rv = pkgbase.resolve('./index.js', './base/wurst/reactPackage/index.js');
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), false, 'found');
@@ -505,7 +508,7 @@ describe('es6sich', () => {
     });
 
     it('resolve:base-file .. + redirect', () => {
-      const rv = pkgbase.resolve('./base/wurst/reactPackage/index.js', '..').npmResolver;
+      const rv = pkgbase.resolve('./base/wurst/reactPackage/index.js', '..');
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), true, 'found');
@@ -514,7 +517,7 @@ describe('es6sich', () => {
     });
 
     it('resolve:base-file ../index.js + noredirect', () => {
-      const rv = pkgbase.resolve('./base/wurst/reactPackage/index.js', '../index.js').npmResolver;
+      const rv = pkgbase.resolve('./base/wurst/reactPackage/index.js', '../index.js');
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), false, 'redirect');
@@ -523,7 +526,7 @@ describe('es6sich', () => {
     });
 
     it('resolve node_module pktest/test.js not found', () => {
-      const rv = pkgbase.resolve('pkgtest/test.js', './murks.js').npmResolver;
+      const rv = pkgbase.resolve('pkgtest/test.js', './murks.js');
       // console.log(rv);
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), false, 'found');
@@ -533,7 +536,7 @@ describe('es6sich', () => {
     });
 
     it('resolve node_module pktest/test.js found ./test.js', () => {
-      const rv = pkgbase.resolve('pkgtest/test.js', './test.js').npmResolver;
+      const rv = pkgbase.resolve('pkgtest/test.js', './test.js');
       // console.log(rv);
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
@@ -543,7 +546,7 @@ describe('es6sich', () => {
     });
 
     it('resolve node_module abs redirect', () => {
-      const rv = pkgbase.resolve('/', 'pkgtest').npmResolver;
+      const rv = pkgbase.resolve('/', 'pkgtest');
       // console.log(rv);
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
@@ -553,7 +556,7 @@ describe('es6sich', () => {
     });
 
     it('resolve node_module rel . redirect', () => {
-      const rv = pkgbase.resolve('/node_modules/pkgtest', '.').npmResolver;
+      const rv = pkgbase.resolve('/node_modules/pkgtest', '.');
       // console.log(rv);
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
@@ -564,7 +567,7 @@ describe('es6sich', () => {
     });
 
     it('resolve node_module no-redirect', () => {
-      const rv = pkgbase.resolve('/node_modules/pkgtest', './test.js').npmResolver;
+      const rv = pkgbase.resolve('/node_modules/pkgtest', './test.js');
       // console.log(rv);
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
@@ -575,7 +578,7 @@ describe('es6sich', () => {
     });
 
     it('resolve node_module redirect', () => {
-      const rv = pkgbase.resolve('/base/wurst/reactPackage/index.js', 'pkgtest').npmResolver;
+      const rv = pkgbase.resolve('/base/wurst/reactPackage/index.js', 'pkgtest');
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), true, 'found');
@@ -584,7 +587,7 @@ describe('es6sich', () => {
     });
 
     it('resolve plain module redirect -> test.js', () => {
-      const rv = pkgbase.resolve('pkgtest', '').npmResolver;
+      const rv = pkgbase.resolve('pkgtest', '');
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), true, 'redirected');
@@ -594,7 +597,7 @@ describe('es6sich', () => {
     });
 
     it('resolve plain module redirect -> test -> test.js', () => {
-      const rv = pkgbase.resolve('pkgtest', './test').npmResolver;
+      const rv = pkgbase.resolve('pkgtest', './test');
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), true, 'redirected');
@@ -604,7 +607,7 @@ describe('es6sich', () => {
     });
 
     it('resolve plain module direct.js', () => {
-      const rv = pkgbase.resolve('pkgtest', './test.js').npmResolver;
+      const rv = pkgbase.resolve('pkgtest', './test.js');
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
       assert.equal(rv.redirected(), false, 'redirected');
@@ -614,7 +617,7 @@ describe('es6sich', () => {
     });
 
     it('resolve stream redirect', () => {
-      const rv = pkgbase.resolve('/test.js', 'stream').npmResolver;
+      const rv = pkgbase.resolve('/test.js', 'stream');
       // console.log(rv);
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
@@ -625,7 +628,7 @@ describe('es6sich', () => {
     });
 
     it('resolve /node_modules/stream redirect', () => {
-      const rv = pkgbase.resolve('/node_modules/stream', '.').npmResolver;
+      const rv = pkgbase.resolve('/node_modules/stream', '.');
       // console.log(rv);
       assert.equal(rv.error(), false, 'error');
       assert.equal(rv.found(), true, 'found');
@@ -639,7 +642,7 @@ describe('es6sich', () => {
   describe('parse', () => {
     it('test import module', () => {
       const transformed = Transform.run(pkgbase.cachator,
-        pkgbase.resolve('/', './base/wurst/reactPackage/index.js').npmResolver);
+        pkgbase.resolve('/', './base/wurst/reactPackage/index.js'));
       const parsed = transformed.transformed;
       assert.ok(transformed.resolved.filter(i => !i.found()).length == 0, '1:' + parsed);
       assert.ok(parsed.startsWith('import'), '2:' + parsed);
@@ -647,8 +650,7 @@ describe('es6sich', () => {
       assert.ok(parsed.includes(`from '/node_modules/domain-browser/source/index.js';`), '4:' + parsed);
     });
     it('test import relative', () => {
-      const transformed = Transform.run(pkgbase.cachator,
-        pkgbase.resolve('/', './base/wurst/index.js').npmResolver);
+      const transformed = Transform.run(pkgbase.cachator, pkgbase.resolve('/', './base/wurst/index.js'));
       const parsed = transformed.transformed;
       assert.ok(transformed.resolved.filter(i => !i.found()).length > 0, 'errors');
       assert.ok(parsed.startsWith('import'), 'import');
@@ -660,7 +662,7 @@ describe('es6sich', () => {
 
     it('test export default last', () => {
       const transformed = Transform.run(pkgbase.cachator,
-        pkgbase.resolve('/', './base/wurst/localPackage/wurst.js').npmResolver);
+        pkgbase.resolve('/', './base/wurst/localPackage/wurst.js'));
       const parsed = transformed.transformed;
       assert.ok(transformed.resolved.filter(i => !i.found()).length == 0, 'errors');
       assert.ok(parsed.endsWith('export default module.exports;'));
@@ -673,7 +675,7 @@ describe('es6sich', () => {
     let port = ~~((Math.random() * (0x10000 - 1024)) + 1024);
     before(() => {
       const eapp = express();
-      eapp.use('/wurst', app(Vfs.from({
+      eapp.use('/wurst', Es6isch.app(Vfs.from({
         rootAbsBase: './test/projectBase/packages/api',
         es6ischBase: '/wurst'
       })));
