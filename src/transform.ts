@@ -16,11 +16,10 @@ export class Transform {
     return cc.transform(base);
   }
 
-  public static fromString(cc: Cachator, base: NpmResolver, file: string): Transform {
-    // console.log(`Hallo:${file}`);
+  private static babelIt(file: string): string[] {
+    const required: string[] = [];
     const ast = babel.parse(file);
     // const packagePath = findPathOfPackageJson(fname);
-    let required: string[] = [];
     traverse(ast, {
       CallExpression(ce: any): void {
         // console.log(ce);
@@ -34,10 +33,14 @@ export class Transform {
         required.push.apply(required, sl);
       }
     });
+    return required;
+  }
+
+  public static fromString(cc: Cachator, base: NpmResolver, file: string): Transform {
+    const required = this.babelIt(file);
     const resolved = Array.from(new Set(required)).map(toResolv => {
       return cc.npmResolver(base.redirectBase, base.root, base.searchPath, base.resolved().rel, toResolv);
     });
-
     return new Transform(base, [
       resolved.sort((a, b) => a.found() ? 0 : 1).map(r => {
         if (!r.found()) {

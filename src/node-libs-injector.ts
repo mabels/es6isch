@@ -10,15 +10,8 @@ function findPathToPackageJson(str: string): string {
   if (!stat) {
     throw new Error(`this must be somewhere ${str}`);
   }
-  let pjson: string;
-  let base: string;
-  if (stat.isDirectory()) {
-    base = str;
-    pjson = path.join(base, 'package.json');
-  } else {
-    base = path.dirname(str);
-    pjson = path.join(base, 'package.json');
-  }
+  let base = stat.isDirectory() ? str : path.dirname(str);
+  const pjson = path.join(base, 'package.json');
   const ret = fs.existsSync(pjson);
   if (!ret) {
     if (base != path.dirname(base)) {
@@ -38,7 +31,7 @@ interface PackageJsonSchema {
 function readPackageJson(pjdir: string): PackageJsonSchema {
   try {
     const ret = JSON.parse(fs.readFileSync(path.join(pjdir, 'package.json')).toString()) as PackageJsonSchema;
-    ret.main = ret.main || './index.js';
+    ret.main = ret.main || './index';
     return ret;
   } catch (e) {
     return null;

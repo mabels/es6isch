@@ -1,6 +1,6 @@
 {
   "name": "es6isch",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "es6isch server",
   "bin": "bin/es6isch",
   "main": "./index.js",

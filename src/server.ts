@@ -17,10 +17,6 @@ export function server(args: string[]): http.Server {
       describe: 'listen addr',
       default: 'localhost'
     })
-    .option('html-base', {
-      alias: 'h',
-      describe: 'path to html base which should es6isch served'
-    })
     .option('root-abs-base', {
       alias: 'r',
       describe: 'path to package base which should es6isch served',
@@ -50,9 +46,6 @@ export function server(args: string[]): http.Server {
   });
   const eapp = express();
 
-  if (argv.htmlBase) {
-    eapp.use('/', express.static(argv.htmlBase));
-  }
   eapp.use(app(vfs));
 
   return eapp.listen(argv.port, argv.listenAddr, () => {

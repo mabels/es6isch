@@ -37,7 +37,6 @@ default package looks like:
 $ node dist/src/server.js \
    -r ./test/pkgbase/ 
    -m ./test/pkgbase/node_modules 
-   -h ./test/pkgbase/html
 ```
 
 open http://localhost:3000/ with your browser
