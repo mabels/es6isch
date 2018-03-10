@@ -665,6 +665,7 @@ describe('es6sich', () => {
       assert.ok(transformed.resolved.filter(i => !i.found()).length == 0, 'errors');
       assert.ok(parsed.endsWith('export default module.exports;'));
     });
+
   });
 
   describe('/wurst test-server', () => {
@@ -679,7 +680,52 @@ describe('es6sich', () => {
       expressSrv = eapp.listen(port, 'localhost', () => { /* */ });
     });
 
-    it('redirect', (done) => {
+    it('test path of require(".") ', (done) => {
+      request({
+          followRedirect: false,
+          followAllRedirects: false,
+          url: `http://localhost:${port}/wurst/src/test.js`
+        }, (err, res) => {
+        try {
+          // console.log(res.statusCode);
+          // console.log(res.headers.location);
+          assert.ok(res.statusCode == 200);
+          assert.ok(res.body.includes('require__ from \'/wurst/src/index.js\''), res.body);
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
+    it('index-html', (done) => {
+      request(`http://localhost:${port}/wurst/src/index.html`, (err, res) => {
+        try {
+          // console.log(res.statusCode);
+          // console.log(res.body);
+          assert.ok(200 <= res.statusCode && res.statusCode < 300, `statusCode:${res.statusCode}`);
+          assert.ok(res.body.includes('We Speak ES6isch'), res.body);
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
+    it('murks-html', (done) => {
+      request(`http://localhost:${port}/wurst/src/murks.html`, (err, res) => {
+        try {
+          // console.log(res.statusCode);
+          // console.log(res.body);
+          assert.ok(404 == res.statusCode, `statusCode:${res.statusCode}`);
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
+    it('redirect ', (done) => {
       request({
           followRedirect: false,
           followAllRedirects: false,

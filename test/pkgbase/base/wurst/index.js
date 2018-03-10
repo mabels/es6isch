@@ -1,3 +1,4 @@
+const _ = require('.');
 const reactPackage = require('./reactPackage');
 const notFoundLocalPackage = require('./localPackage');
 const localPackage = require('./localPackage/wurst.js');

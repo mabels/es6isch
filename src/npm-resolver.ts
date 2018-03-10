@@ -310,7 +310,7 @@ export class NpmResolver implements NpmResolverParam {
 
   public isPath(): string {
     if (this.is == NpmIs.FILE) {
-      return this.resolved().rel;
+      return path.join(this.redirectBase || '/', this.resolved().rel);
     } else {
       return path.join(path.join(this.redirectBase || '/', '/node_modules'), this.resolved().rel);
     }

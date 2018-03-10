@@ -6,9 +6,10 @@ import { Vfs } from './vfs';
 export function app(vfs: Vfs): express.Express {
   const es6isch = new Es6isch(vfs.root.abs);
   const eapp = express();
+  const expStatic = express.static(vfs.root.abs);
   eapp.use('/', (req, res) => {
     const resolv = es6isch.resolve('/', req.url, req.baseUrl);
-    // console.log(`resolv:${resolv}`);
+    // console.log(`resolv:${JSON.stringify(resolv, null, 2)}`);
     if (!resolv.npmResolver.found()) {
       // console.log(`XXXXX:${req.url}:${JSON.stringify(resolv)}`);
       res.statusCode = 404;
@@ -20,14 +21,8 @@ export function app(vfs: Vfs): express.Express {
       // console.log(req.baseUrl);
       res.setHeader('Location', path.join(req.baseUrl, resolv.npmResolver.resolved().rel));
     } else {
-      if (req.url.endsWith('.map')) {
-        try {
-          res.send(es6isch.cachator.readFileSync(resolv.npmResolver.resolved().abs));
-        } catch (e) {
-          // console.log(`XXXXX:${resolv.npmResolver.resolved().abs}`);
-          res.statusCode = 405;
-          res.send(e);
-        }
+      if (!['.es6', '.js'].find(i => req.url.endsWith(i))) {
+        return expStatic(req, res, () => { console.log(`next:${req.url}`); });
       } else {
         res.setHeader('Content-type', 'application/javascript');
         const transformed = resolv.transform();
