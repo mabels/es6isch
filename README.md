@@ -32,7 +32,7 @@ Options:
 ```bash
 echo '{"name": "es6isch-example", "version": "1.0.0"}' > package.json
 yarn add es6isch react
-echo "<body><script type="module">import React from 'react'; console.log(React)</script></body>" > index.html
+echo "<body><script type="module">import React from '/node_modules/react'; console.log(React)</script></body>" > index.html
 yarn es6isch # open browser on localhost:3000
 ```
 
