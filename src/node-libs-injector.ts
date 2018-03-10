@@ -1,6 +1,8 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { NpmIs, NpmResolver, NpmResolverCreateParam, Resolved } from './npm-resolver';
+import { NpmIs } from './types/npm-is';
+import { Resolved } from './types/resolved';
+import { NpmResolver, NpmResolverCreateParam } from './npm-resolver';
 
 let nodeLibsInjectorSingleTon: Map<string, NpmResolver> = null;
 

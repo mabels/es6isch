@@ -2,72 +2,10 @@
 import * as path from 'path';
 // import * as fs from 'fs';
 import { Cachator } from './cachator';
-
-export enum NpmFoundState {
-  UNDEF = 'undef',
-  FOUND = 'found',
-  NOTFOUND = 'notfound'
-}
-
-export enum NpmIs {
-  FILE = 'FILE',
-  MODULE = 'MODULE'
-}
-
-export class Resolved {
-  public readonly root: string;
-  public readonly relDir: string;
-  public readonly inFname: string;
-  // public readonly redirect: boolean;
-  public readonly found: NpmFoundState;
-  public readonly error?: any;
-
-  public static file(root: string, relDir: string, inFname: string, suffix = ''): () => Resolved {
-    return () => {
-      const fname = `${inFname}${suffix}`;
-      return new Resolved(root, relDir, fname, null, NpmFoundState.UNDEF);
-    };
-  }
-
-  public static found(root: string, relDir: string, inFname: string): () => Resolved {
-    return () => {
-      return new Resolved(root, relDir, inFname, null, NpmFoundState.FOUND);
-    };
-  }
-
-  public static notFound(root: string, relDir: string, inFname: string): () => Resolved {
-    return () => {
-      return new Resolved(root, relDir, inFname, null, NpmFoundState.NOTFOUND);
-    };
-  }
-
-  public static package(rc: Cachator, root: string, relDir: string): () => Resolved {
-    return () => {
-      let packageJson: any;
-      const absPackageJson = path.join(root, relDir, 'package.json');
-      packageJson = rc.readJsonFile(absPackageJson) || {};
-      return new Resolved(root, relDir, packageJson.main || 'index', null, NpmFoundState.UNDEF);
-    };
-  }
-
-  constructor(root: string, relDir: string, inFname: string, error: any, found: NpmFoundState) {
-    this.root = root;
-    this.relDir = relDir;
-    this.inFname = inFname;
-    // this.redirect = false;
-    this.found = found;
-    this.error = error;
-  }
-
-  public toObj(): any {
-    return this;
-  }
-}
-
-export interface NpmRelAbs {
-  rel: string;
-  abs: string;
-}
+import { NpmIs } from './types/npm-is';
+import { NpmFoundState } from './types/npm-found-state';
+import { NpmRelAbs } from './types/npm-rel-abs';
+import { Resolved } from './types/resolved';
 
 export interface NpmResolverCreateParam {
   fsCache: Cachator;

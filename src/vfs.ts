@@ -1,13 +1,19 @@
-import { MappedPath } from './mapped-path';
-import { Param } from './param';
+import { MappedPath } from './types/mapped-path';
 import * as path from 'path';
+
+export interface VfsParam {
+  rootAbsBase: string;
+  moduleAbsBase?: string;
+  es6ischBase?: string;
+  modulesBase?: string;
+}
 
 export class Vfs {
   public readonly root: MappedPath;
   public readonly modules: MappedPath;
   public readonly es6ischBase: string;
 
-  public static from(param: Param): Vfs {
+  public static from(param: VfsParam): Vfs {
     return new Vfs(param.rootAbsBase, param.moduleAbsBase, param.es6ischBase, param.modulesBase);
   }
 
