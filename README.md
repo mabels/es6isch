@@ -1,23 +1,19 @@
+> Rewrite CommonJS to browser-compatible ES2015 imports on the fly
+
 # es6isch
 
 [![Build Status](https://travis-ci.org/mabels/es6isch.svg?branch=master)](https://travis-ci.org/mabels/es6isch)
 
-## Dependencies
-
-* @babel/core
-* @babel/trverse
-* yargs
-* express
-
-## Getting started
-
-It's an server which rewrites a node project (require) to es6 browser import style.
-
-Currently we missing the possiblity to generate a rewritten static filesystem from the 
-provided roots.
+## Install
 
 ```
-$ node .
+npm install es6isch
+```
+
+## CLI
+
+```
+$ es6isch --help
 Options:
   --help              Show help                                        [boolean]
   --version           Show version number                              [boolean]
@@ -31,17 +27,29 @@ Options:
                  [default: "$HOME/oftware/es6isch/node_modules"]
 ```
 
-default package looks like:
+## CLI Example
 
+```bash
+echo '{"name": "es6isch-example", "version": "1.0.0"}' > package.json
+yarn add es6isch react
+echo "<body><script type="module">import React from '/node_modules/react'; console.log(React)</script></body>" > index.html
+yarn es6isch # open browser on localhost:3000
 ```
-$ node dist/src/server.js \
-   -r ./test/pkgbase/ 
-   -m ./test/pkgbase/node_modules 
+
+
+## API Example
+
+```js
+const express = require("express");
+
+const app = express();
+
+app.use('/', app(Vfs.from({
+  rootAbsBase: './test/projectBase/packages/api',
+  es6ischBase: '/'
+})));
 ```
 
-open http://localhost:3000/ with your browser
-
-# default behavior
-
-if you start es6isch in a node package root it should autoconfigure it self
+## License
+es6isch is released under the Apache License 2.0
 
