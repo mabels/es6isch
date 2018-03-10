@@ -50,3 +50,6 @@ app.use('/', app(Vfs.from({
 })));
 ```
 
+## License
+es6isch is released under the Apache License 2.0
+
