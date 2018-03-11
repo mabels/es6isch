@@ -49,7 +49,13 @@ export class Transform {
           return `import * as require_${r.asVar()} from '${r.isPath()}';`;
         }
       }).join('\n'),
-      `const module = { exports: {} };`,
+      'const exports = {};',
+      `const module = { exports: exports };`,
+      'const process = {',
+        'env: {',
+          'NODE_ENV: "production"',
+        '}',
+      '};',
       `function require(fname) {`,
       `return ({`,
       resolved.filter(i => i.found()).map((i) => {

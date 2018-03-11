@@ -30,6 +30,7 @@ describe('es6sich', () => {
         ...npmResolvCreateParam,
         inFname: '.'
       });
+      // console.log(nfr);
       assert.equal(nfr.inFname, '.', 'inFname');
       assert.equal(nfr.error(), false, 'error');
       assert.equal(nfr.redirected(), true, 'error');
@@ -700,6 +701,43 @@ describe('es6sich', () => {
       });
     });
 
+    it('test const process ', (done) => {
+      request({
+          followRedirect: false,
+          followAllRedirects: false,
+          url: `http://localhost:${port}/wurst/src/test.js`
+        }, (err, res) => {
+        try {
+          // console.log(res.statusCode);
+          // console.log(res.headers.location);
+          assert.ok(res.statusCode == 200);
+          assert.ok(res.body.includes('const process ='), res.body);
+          assert.ok(res.body.includes('NODE_ENV: "production"'), res.body);
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
+    it('test const exports = {};', (done) => {
+      request({
+          followRedirect: false,
+          followAllRedirects: false,
+          url: `http://localhost:${port}/wurst/src/test.js`
+        }, (err, res) => {
+        try {
+          // console.log(res.statusCode);
+          // console.log(res.headers.location);
+          assert.ok(res.statusCode == 200);
+          assert.ok(res.body.includes('const exports = {}'), res.body);
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
     it('index-html', (done) => {
       request(`http://localhost:${port}/wurst/src/index.html`, (err, res) => {
         try {
@@ -753,6 +791,21 @@ describe('es6sich', () => {
           assert.ok(200 <= res.statusCode && res.statusCode < 300);
           assert.ok(res.body.startsWith(
             'import * as require_apilevelpkg from \'/wurst/node_modules/apilevelpkg/test.js\''), res.body);
+          done();
+        } catch (e) {
+          done(e);
+        }
+      });
+    });
+
+    it('browser package.json resolver', (done) => {
+      request(`http://localhost:${port}/wurst/`, (err, res) => {
+        try {
+          // console.log(res.statusCode);
+          // console.log(res.body);
+          assert.ok(200 <= res.statusCode && res.statusCode < 300);
+          assert.ok(res.body.includes(
+            'import * as require_browser from \'/wurst/node_modules/browser/src/browser.js\';'), res.body);
           done();
         } catch (e) {
           done(e);

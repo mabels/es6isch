@@ -31,10 +31,9 @@ export class Resolved {
 
   public static package(rc: Cachator, root: string, relDir: string): () => Resolved {
     return () => {
-      let packageJson: any;
       const absPackageJson = path.join(root, relDir, 'package.json');
-      packageJson = rc.readJsonFile(absPackageJson) || {};
-      return new Resolved(root, relDir, packageJson.main || 'index', null, NpmFoundState.UNDEF);
+      const packageJson = rc.readPackageJsonFile(absPackageJson);
+      return new Resolved(root, relDir, packageJson.browserMain(), null, NpmFoundState.UNDEF);
     };
   }
 

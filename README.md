@@ -44,7 +44,7 @@ const express = require("express");
 
 const app = express();
 
-app.use('/', app(Vfs.from({
+app.use('/', Es6isch.app(Vfs.from({
   rootAbsBase: './test/projectBase/packages/api',
   es6ischBase: '/'
 })));
